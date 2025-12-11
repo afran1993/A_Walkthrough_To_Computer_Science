@@ -241,7 +241,9 @@ Dalla VM, apri un terminale e digita:
 
 ```bash
 ip a
+```
 
+FINE (per ora)
 
 
 
