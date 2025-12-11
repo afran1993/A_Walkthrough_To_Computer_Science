@@ -6,8 +6,9 @@ Questa guida è pensata per chi parte da zero e vuole installare Nexus IQ Server
 
 ## 1. Prerequisiti
 
-- Rocky Linux con accesso root o sudo.
-- Docker installato e funzionante.
+- VMWare (https://dn710001.ca.archive.org/0/items/vmwareworkstationarchive/17.x/VMware-workstation-full-17.6.4-24832109.exe)
+- Rocky Linux con accesso root o sudo (https://download.rockylinux.org/pub/rocky/10/isos/x86_64/Rocky-10.1-x86_64-dvd1.iso).
+- Docker installato e funzionante (https://docs.docker.com/engine/install/rhel/)
 - Docker Compose installato (può essere il plugin di Docker moderno).
 - PC Windows nella stessa rete della VM (per accedere alla UI).
 
@@ -185,6 +186,61 @@ Attenzione: cancellerà tutti i volumi non usati e potrebbe far perdere dati per
 * Da 8071 puoi fare solo operazioni di amministrazione, la UI vera si usa su 8070.
 * Le credenziali di default per accedere a Sonatype sono admin / admin123
 
+## 11. Docker-compose, versione classica
+
+```bash
+sudo dnf install -y docker-compose
+docker-compose --version
+docker-compose up -d
+docker-compose down
+```
+
+## 12. Avviare Rocky Linux in VMware Player
+
+Se stai usando **VMware Player**, segui questi passaggi per far partire la VM Rocky Linux e prepararla a usare Docker:
+
+### 12.1 Creare una nuova macchina virtuale
+
+1. Assicurati che il sistema operativo sia a 64 bit. Verifica che la virtualizzazione hardware sia abilitata nel BIOS. Apri **VMware Player**.
+2. Clicca su **Create a New Virtual Machine**.
+3. Seleziona **Installer disc image file (iso)** e scegli il file ISO di Rocky Linux scaricato.
+4. Clicca **Next**.
+5. Scegli un nome per la VM, ad esempio `RockyLinux-NexusIQ`.
+6. Scegli il percorso in cui salvare la VM.
+7. Imposta la dimensione del disco virtuale (consigliati almeno **40 GB**), la RAM a 4 GB e 2 core.
+8. In "Network Adapter", nella schermata a destra "Network Connection", mettere "Bridged: Connected directly to the physical network"
+9. Clicca **Finish**.
+
+---
+
+### 12.2 Configurare la VM prima del primo avvio
+
+- Apri **Settings** della VM appena creata.
+- Imposta almeno **2 CPU** e **4 GB di RAM** (Nexus IQ funziona meglio con almeno 4 GB).
+- Controlla la scheda di rete: scegli **Bridged** se vuoi che la VM ottenga un IP nella stessa rete del PC host (così puoi accedere via browser da Windows).
+
+---
+
+### 12.3 Avviare la VM e installare Rocky Linux
+
+1. Seleziona la VM e clicca su **Play virtual machine**.
+2. La VM partirà dall’ISO di Rocky Linux.
+3. Segui la procedura guidata di installazione di Rocky:
+   - Seleziona lingua e tastiera
+   - Configura rete (assicura che ottenga un IP valido)
+   - Imposta password di root
+   - Installa il sistema base
+
+4. Al termine, riavvia la VM senza ISO (rimuovi o disattiva l’ISO dal boot) e accedi al sistema Rocky Linux appena installato.
+
+---
+
+### 12.4 Trovare l’IP della VM
+
+Dalla VM, apri un terminale e digita:
+
+```bash
+ip a
 
 
 
