@@ -1,0 +1,112 @@
+# 🧩 Guida Completa: Come far funzionare sempre la connessione *Bridged* su VMware Workstation (Windows → Rocky Linux)
+
+Quando una VM in modalità *bridged* non vede la rete, il problema è quasi sempre sull’**host Windows** o nel **bridge driver di VMware**.  
+Questa guida spiega tutte le verifiche da fare nell’ordine corretto.
+
+## 1. Identificare la scheda di rete fisica dell’host
+
+Digitare:
+
+Win + R → ncpa.cpl
+
+
+Individuare la **scheda fisica realmente connessa a Internet**:
+
+- Se sei su Wi-Fi → la scheda Wi-Fi è quella corretta  
+- Altre interfacce (Ethernet scollegate, vEthernet, VMnet1, VMnet8, WSL, Hyper-V) **non sono fisiche**
+
+La scheda fisica è quella con:
+
+- Stato: **Connesso**
+- SSID o nome della rete (es. *iliadbox-…*)
+
+## 2. Verificare che la scheda fisica sia configurata per il bridge
+
+### Aprire le proprietà della scheda fisica:
+
+ncpa.cpl → tasto destro sulla scheda Wi-Fi/Ethernet → Proprietà
+
+
+Verificare:
+
+- ✔ **VMware Bridge Protocol** deve essere **spuntato**
+- Se **non compare**, vedere i passi successivi (Hyper-V o driver VMware mancanti)
+
+## 3. Disabilitare/riabilitare la scheda fisica (reset consigliato)
+
+Questa operazione risolve la maggior parte dei problemi di bridging.
+
+ncpa.cpl → tasto destro sulla scheda fisica → Disabilita → dopo 5s → Abilita
+
+
+Questo resetta il network stack di Windows, incluso il bridging.
+
+## 4. Verificare che Hyper-V non blocchi il bridge
+
+VMware e Hyper-V non convivono bene.  
+Se Hyper-V è attivo, il **Bridge Protocol** può sparire dalle proprietà della scheda.
+
+### Verifica:
+
+Aprire PowerShell **come amministratore**:
+
+bcdedit
+
+
+Cercare:
+
+hypervisorlaunchtype
+
+
+- `Auto` → Hyper-V attivo → possibile causa del problema  
+- `Off` → Hyper-V disattivato → ok
+
+### Per disattivare Hyper-V:
+
+bcdedit /set hypervisorlaunchtype off
+
+
+Poi **riavvia Windows**.
+
+## 5. Riparare l’installazione di VMware Workstation
+
+Se il protocollo di bridging non appare ancora, ripara l’installazione di VMware:
+
+1. Apri *App e funzionalità* in Windows
+2. Cerca **VMware Workstation**
+3. Seleziona **Modifica** → **Repair**
+4. Completa il processo e **riavvia Windows**
+
+## 6. Verificare la configurazione della VM in VMware Workstation
+
+### Controllare le impostazioni della rete della VM:
+
+1. Apri VMware Workstation
+2. Seleziona la VM e vai su **Settings**
+3. Scegli **Network Adapter**
+4. Assicurati che sia selezionato **Bridged**
+5. Clicca su **Configure Adapters** e spunta **solo** la tua scheda fisica (Wi-Fi/Ethernet)
+
+## 7. Verificare la configurazione di rete nella VM (Rocky Linux)
+
+All’interno della VM, verifica l’IP:
+
+ip a
+
+
+Dovresti vedere un indirizzo IP nella stessa subnet della rete dell’host.
+
+## 8. Test di connettività
+
+Esegui i seguenti comandi nella VM per verificare la connettività:
+
+ping -c 4 192.168.1.1
+ping -c 4 8.8.8.8
+ping -c 4 google.com
+
+
+Se tutti i ping hanno successo, la connessione è correttamente configurata.
+
+---
+
+Questa guida dovrebbe coprire tutti i passaggi necessari per garantire che la VM veda la connessione in modalità bridged.
