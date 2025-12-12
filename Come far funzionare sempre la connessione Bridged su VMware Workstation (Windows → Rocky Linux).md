@@ -1,6 +1,6 @@
 # 🧩 Guida Completa: Come far funzionare sempre la connessione *Bridged* su VMware Workstation (Windows → Rocky Linux)
 
-Quando una VM in modalità *bridged* non vede la rete, il problema è quasi sempre sull’**host Windows** o nel **bridge driver di VMware**.  
+Quando una VM in modalità *bridged* non vede la rete, il problema è quasi sempre sull’**host Windows** o nel **bridge driver di VMware**.
 Questa guida spiega tutte le verifiche da fare nell’ordine corretto.
 
 ## 1. Identificare la scheda di rete fisica dell’host
