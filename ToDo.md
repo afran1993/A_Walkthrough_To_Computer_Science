@@ -1,0 +1,1 @@
+- Vedere su telegram se ho il kickoff devops in pdf sulla chat con Giampi
