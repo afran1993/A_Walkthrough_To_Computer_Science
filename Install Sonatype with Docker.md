@@ -243,6 +243,8 @@ Dalla VM, apri un terminale e digita:
 ip a
 ```
 
+NOTA: A volte la VM potrebbe dire che la connessione non è presente sebbene sia stata selezionata la modalità "Bridged". In questo caso bisogna provare anche a riavviare il PC che esegue la VM.
+
 FINE (per ora)
 
 
