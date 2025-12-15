@@ -17,7 +17,7 @@ sudo passwd nexus
 * -m: crea la home directory.
 /app/sonatype-work: directory di lavoro di Nexus.
 
-2. Scaricare e installare Nexus
+## 2. Scaricare e installare Nexus
 Scarica l’ultima versione dal sito ufficiale:
 
 Scarichiamo l’ultima versione di Nexus Repository Manager e la estraiamo nella cartella /app/nexus:
@@ -34,7 +34,7 @@ sudo mv /app/nexus-* /app/nexus
 * tar -xvzf: estrae i file.
 * mv: rinomina la cartella con un nome semplice /app/nexus.
 
-3. Impostare i permessi corretti
+## 3. Impostare i permessi corretti
 
 Assicuriamoci che l’utente nexus sia proprietario dei file di Nexus e della directory di lavoro:
 
@@ -45,7 +45,7 @@ sudo chown -R nexus:nexus /app/sonatype-work
 
 * -R: applica ricorsivamente a tutte le sottodirectory.
 
-4. Configurare la porta di ascolto
+## 4. Configurare la porta di ascolto
 
 Modifichiamo le proprietà di Nexus per impostare la porta 8081 e ascoltare su tutte le interfacce:
 
@@ -64,7 +64,7 @@ application-host=0.0.0.0
 * application-port: porta HTTP del server.
 * application-host: 0.0.0.0 indica che ascolta su tutte le interfacce.
 
-5. Configurare SELinux (se presente)
+## 5. Configurare SELinux (se presente)
 
 Se SELinux è abilitato, dobbiamo consentire l’ascolto sulla porta 8081:
 
@@ -77,7 +77,7 @@ sudo getenforce
 * getenforce verifica lo stato di SELinux (Permissive o Enforcing).
 
 
-6. Creare il servizio systemd
+## 6. Creare il servizio systemd
 
 Creiamo un servizio systemd per gestire Nexus come servizio di sistema:
 
@@ -111,7 +111,7 @@ sudo systemctl enable nexus.service
 sudo systemctl start nexus.service
 ```
 
-7. Verificare che Nexus sia in ascolto
+## 7. Verificare che Nexus sia in ascolto
 
 Controlliamo se la porta 8081 è aperta:
 
@@ -128,7 +128,7 @@ tcp   LISTEN 0      128    0.0.0.0:8081    0.0.0.0:* ...
 
 Se non compare, verifica nexus.properties, SELinux e i permessi dell’utente nexus.
 
-8. Controllare i log di Nexus
+## 8. Controllare i log di Nexus
 
 I log di Nexus contengono informazioni utili per il debug:
 
@@ -138,7 +138,7 @@ sudo tail -f /app/sonatype-work/nexus3/log/nexus.log
 
 Qui puoi monitorare eventuali errori all’avvio o problemi runtime.
 
-9. Avvio e arresto manuale
+## 9. Avvio e arresto manuale
 
 È possibile avviare o fermare Nexus senza systemd:
 
@@ -149,7 +149,7 @@ sudo -u nexus /app/nexus/bin/nexus stop
 
 * -u nexus: esegue i comandi come utente Nexus.
 
-10. Controllare i processi Java attivi
+## 10. Controllare i processi Java attivi
 
 Verifichiamo che Nexus stia girando:
 
@@ -164,7 +164,7 @@ nexus  2823  2729  0 06:00 pts/0 00:01:44 /app/nexus/bin/java ... com.sonatype.i
 
 La presenza di questo processo indica che il server è avviato correttamente.
 
-11. Troubleshooting
+## 11. Troubleshooting
 
 * Se Nexus non si avvia, controlla /app/sonatype-work/nexus3/log/nexus.log.
 * Se la porta 8081 non è aperta, verifica SELinux e nexus.properties.
@@ -184,7 +184,7 @@ sudo systemctl restart nexus.service
 
 Assicurati che l’utente nexus abbia accesso completo a /app/nexus e /app/sonatype-work.
 
-12. Note finali
+## 12. Note finali
 
 * L’installazione è senza Docker, quindi tutti i file sono direttamente sul filesystem.
 * Assicurati di avere Java 11 installato.
