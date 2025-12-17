@@ -2,7 +2,7 @@
 
 | Description | Command |
 |-------------|---------|
-| Mostra la versione di Docker | `docker --version` |
+| Mostra la versione di Docker | ```docker --version``` |
 | Mostra versione client + server | `docker version` |
 | Info su sistema e daemon Docker | `docker info` |
 | Lista comandi disponibili | `docker --help` |
