@@ -47,7 +47,7 @@ Unix è stato sviluppato da AT&T, General Electric e il Massachusetts institute 
 
 | Distribuzione | Logo | Descrizione Breve | Scopo |
 | :--- | :---: | :--- | :--- |
-| **Ubuntu** | <img src="https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo-ubuntu_coco.png" width="40"> | La distro più famosa al mondo, basata su Debian. Offre un'esperienza "chiavi in mano". | Ideale per principianti, desktop e sviluppatori che cercano stabilità. |
+| **Ubuntu** | <img src="[https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo-ubuntu_coco.png](https://it.wikipedia.org/wiki/File:Ubuntu-logo-2022.svg)" width="40"> | La distro più famosa al mondo, basata su Debian. Offre un'esperienza "chiavi in mano". | Ideale per principianti, desktop e sviluppatori che cercano stabilità. |
 | **Fedora** | <img src="https://upload.wikimedia.org/wikipedia/commons/3/3f/Fedora_logo.svg" width="40"> | Nota per includere sempre le ultimissime versioni dei software e delle tecnologie. | Per chi vuole provare le novità tecnologiche prima di chiunque altro. |
 | **Debian** | <img src="https://upload.wikimedia.org/wikipedia/commons/6/66/Openlogo-debian.svg" width="40"> | Una delle distro più vecchie, focalizzata su stabilità granitica e software libero. | Utilizzata principalmente per server e infrastrutture critiche. |
 | **RHEL** | <img src="https://upload.wikimedia.org/wikipedia/commons/d/d8/Red_Hat_logo.svg" width="40"> | **Red Hat Enterprise Linux**. Sistema commerciale con supporto professionale 24/7. | Scelta obbligata per grandi aziende, banche e governi. |
