@@ -99,7 +99,7 @@ Il kernel Linux è composto da diverse parti fondamentali:
 * Gestione della rete
 * Varie altre componenti minori
 
-<img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" width="40">
+<img src="https://www.google.com/url?sa=t&source=web&rct=j&url=https%3A%2F%2Fit.wikipedia.org%2Fwiki%2FFile%3ALinux_kernel_diagram.svg&ved=0CBUQjRxqFwoTCIjwvZuD9ZEDFQAAAAAdAAAAABAI&opi=89978449" width="40">
 
 Probabilmente le parti più importanti del kernel (senza le quali nulla funzionerebbe) sono la **gestione della memoria** e la **gestione dei processi**. La gestione della memoria si occupa di assegnare aree di memoria e aree di spazio di **swap** ai processi, alle parti del kernel e per la cache del buffer. La gestione dei processi crea i processi e implementa il **multitasking** scambiando il processo attivo sul processore.
 
