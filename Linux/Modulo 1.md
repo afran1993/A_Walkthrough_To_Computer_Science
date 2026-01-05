@@ -105,3 +105,71 @@ Probabilmente le parti più importanti del kernel (senza le quali nulla funzione
 
 Al livello più basso, il kernel contiene un driver di dispositivo hardware per ogni tipo di hardware supportato. Poiché il mondo è pieno di diversi tipi di hardware, il numero di driver è elevato. Spesso esistono componenti hardware simili che differiscono nel modo in cui vengono controllati dal software. Queste somiglianze rendono possibile avere classi generali di driver che supportano operazioni simili; ogni membro della classe ha la stessa interfaccia verso il resto del kernel, ma differisce in ciò che deve fare per implementarle. Ad esempio, tutti i driver dei dischi appaiono uguali al resto del kernel, ovvero hanno tutti operazioni come "inizializza l'unità", "leggi settore N" e "scrivi settore N".
 
+# Cos'è la memoria virtuale?
+
+Linux supporta la **memoria virtuale**, ovvero l'uso del disco come estensione della RAM, in modo che la dimensione effettiva della memoria utilizzabile aumenti di conseguenza. Il kernel scrive il contenuto di un blocco di memoria attualmente inutilizzato sul disco rigido, in modo che quella porzione di RAM possa essere usata per altri scopi. Quando il contenuto originale è di nuovo necessario, viene riletto e riportato in memoria.
+
+Tutto questo avviene in modo completamente trasparente per l'utente; i programmi in esecuzione su Linux vedono solo la maggiore quantità di memoria disponibile e non si accorgono che parti di essi risiedono periodicamente sul disco. Naturalmente, leggere e scrivere sul disco rigido è più lento (nell'ordine di migliaia di volte più lento) rispetto all'uso della memoria reale, quindi i programmi non girano altrettanto velocemente. La parte del disco rigido utilizzata come memoria virtuale è chiamata **spazio di swap** (swap space).
+
+### Partizioni di Swap vs File di Swap
+
+Linux può utilizzare come spazio di swap sia un normale file nel filesystem, sia una partizione separata:
+
+* **Partizione di Swap:** È più veloce, ma è più difficile da ridimensionare (richiede il ripartizionamento del disco).
+* **File di Swap:** È più facile da creare e ridimensionare senza dover riconfigurare l'intero disco.
+
+**Consiglio:** Se non sai di quanto spazio hai bisogno, puoi iniziare con un file di swap, testare il sistema per un po' e, una volta determinata la dimensione ideale, creare una partizione di swap dedicata.
+
+### Utilizzo Flessibile dello Swap
+
+Linux permette di utilizzare **contemporaneamente** diverse partizioni e/o file di swap. Ciò significa che se occasionalmente hai bisogno di una quantità insolita di spazio di swap, puoi configurare un file di swap extra solo per quel periodo, invece di tenere allocata l'intera quantità stabilmente.
+
+### Nota sulla terminologia
+
+In informatica si distingue solitamente tra:
+1.  **Swapping:** Scrittura dell'intero processo nello spazio di swap.
+2.  **Paging:** Scrittura solo di parti a dimensione fissa (solitamente pochi kilobyte) alla volta.
+
+Il **paging** è generalmente più efficiente ed è ciò che Linux fa realmente, anche se la terminologia tradizionale di Linux continua a usare il termine "swapping".
+
+# All'interno di Linux (Inside Linux)
+
+### Il Kernel
+* **Il cuore del sistema UNIX:** Viene caricato all'avvio del sistema (boot) ed è un programma di controllo che risiede permanentemente nella memoria (memory-resident).
+* **Gestione delle risorse:** Gestisce l'intero parco risorse del sistema, presentandole a te e a ogni altro utente come un sistema coerente. Fornisce servizi alle applicazioni utente come la gestione dei dispositivi, la pianificazione dei processi (scheduling), ecc.
+* **Esempi di funzioni eseguite dal kernel:**
+    * Gestione della memoria della macchina e allocazione della stessa a ciascun processo.
+    * Pianificazione (scheduling) del lavoro svolto dalla CPU, affinché il lavoro di ogni utente sia eseguito nel modo più efficiente possibile.
+    * Esecuzione del trasferimento di dati da una parte all'altra della macchina.
+    * Interpretazione ed esecuzione delle istruzioni provenienti dalla shell.
+    * Applicazione dei permessi di accesso ai file.
+* *Nota: Non è necessario conoscere i dettagli del kernel per utilizzare un sistema UNIX; queste informazioni sono fornite solo a scopo informativo.*
+
+
+
+---
+
+### La Shell
+* **Interfaccia di accesso:** Ogni volta che effettui l'accesso (login) a un sistema Unix, vieni inserito in un programma shell. Il "prompt" della shell è solitamente visibile nella posizione del cursore sullo schermo. Per svolgere il tuo lavoro, inserisci i comandi in corrispondenza di questo prompt.
+* **Interprete di comandi:** La shell è un interprete; prende ogni comando e lo passa al kernel del sistema operativo affinché venga eseguito. Successivamente, mostra i risultati dell'operazione sul tuo schermo.
+* **Varietà di Shell:** Su ogni sistema UNIX sono solitamente disponibili diverse shell, ognuna con i propri pregi e difetti. Utenti diversi possono utilizzare shell diverse. Inizialmente, l'amministratore di sistema fornirà una shell predefinita, che può essere sovrascritta o modificata.
+* **Le shell più comuni:**
+    * **sh** (Bourne shell)
+    * **csh** (C shell)
+    * **ksh** (Korn shell)
+    * **tcsh** (TC Shell)
+    * **bash** (Bourne Again Shell) - *La più diffusa oggi.*
+* **Linguaggio di programmazione:** Ogni shell include anche il proprio linguaggio di programmazione. I file di comando, chiamati "**shell script**", vengono utilizzati per compiere una serie di attività automatizzate.
+
+---
+
+### Utility (Utilità)
+* **Centinaia di programmi:** UNIX fornisce diverse centinaia di programmi di utilità, spesso definiti semplicemente "comandi".
+* **Funzioni universali:** Svolgono compiti comuni come:
+    * Editing di testi.
+    * Manutenzione dei file.
+    * Stampa.
+    * Ordinamento (sorting).
+    * Supporto alla programmazione.
+    * Informazioni online, ecc.
+* **Modularità:** Sono programmi modulari; singole funzioni possono essere raggruppate (tramite le "pipe") per eseguire compiti più complessi.
