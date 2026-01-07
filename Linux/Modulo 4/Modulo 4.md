@@ -1297,3 +1297,650 @@ echo -e "\n--- Ricerca multipla (Seinfeld o Benes) ---"
 egrep "Seinfeld|Benes" seinfeld-characters
 ```
 
+# Documentazione Tecnica: `sort` e `uniq`
+
+Questi due comandi vengono spesso utilizzati insieme per trasformare dati disordinati in liste pulite, ordinate e prive di ridondanze.
+
+---
+
+## 1. Il Comando `sort`
+Il comando `sort` organizza le righe di un file o dell'output di un comando in ordine alfabetico (dalla A alla Z) o numerico.
+
+### Opzioni Comuni:
+| Opzione | Descrizione |
+| :--- | :--- |
+| **`-r`** | **Reverse:** Ordina in ordine decrescente (dalla Z alla A). |
+| **`-k [n]`** | **Key:** Ordina in base a una specifica colonna (field) numero *n*. |
+| **`-n`** | **Numeric:** Ordina i valori in base al loro valore numerico anziché alfabetico. |
+
+
+
+---
+
+## 2. Il Comando `uniq`
+Il comando `uniq` viene utilizzato per rimuovere le righe duplicate. 
+
+> **ATTENZIONE:** `uniq` identifica i duplicati solo se sono **adiacenti** (uno dopo l'altro). Per questo motivo, è fondamentale eseguire sempre un `sort` prima di passare i dati a `uniq`.
+
+### Opzioni Comuni:
+| Opzione | Descrizione |
+| :--- | :--- |
+| **`-c`** | **Count:** Conta quante volte ogni riga appare nel file. |
+| **`-d`** | **Duplicates:** Mostra solo le righe che hanno dei duplicati. |
+| **`-u`** | **Unique:** Mostra solo le righe che appaiono una sola volta. |
+
+---
+
+## 3. Esempi Pratici e Workflow
+
+### Ordinamento per Colonna Specifica
+Se vogliamo ordinare l'output di `ls -l` in base al nome (che è la nona colonna):
+`ls -l | sort -k 9`
+
+### Rimozione Duplicati (Il Workflow Standard)
+Per rimuovere correttamente i duplicati da un file:
+`sort seinfeld-characters | uniq`
+
+### Contare le Occorrenze
+Per vedere quante volte un nome appare nella lista:
+`sort seinfeld-characters | uniq -c`
+
+
+
+---
+
+## 4. Script Bash di Riepilogo (Esercitazione)
+
+```bash
+# --- ESEMPIO PRATICO SORT e UNIQ ---
+
+# 1. Creazione file con duplicati disordinati
+echo -e "Jerry\nGeorge\nJerry\nElaine\nGeorge\nJerry" > nomi.txt
+
+# 2. Ordinamento semplice
+echo "--- Lista Ordinata ---"
+sort nomi.txt
+
+# 3. Tentativo di uniq SENZA sort (non funzionerà correttamente)
+echo -e "\n--- Uniq senza Sort (Errore comune) ---"
+uniq nomi.txt
+
+# 4. Uso corretto: Sort + Uniq
+echo -e "\n--- Lista Pulita (Sort | Uniq) ---"
+sort nomi.txt | uniq
+
+# 5. Contare quante volte appare ogni nome
+echo -e "\n--- Conteggio Duplicati ---"
+sort nomi.txt | uniq -c
+
+# 6. Mostrare solo i nomi che erano duplicati
+echo -e "\n--- Solo i nomi ripetuti ---"
+sort nomi.txt | uniq -d
+```
+
+# Documentazione Tecnica: Il Comando `wc` (Word Count)
+
+Il comando **`wc`** è uno strumento essenziale per analizzare le dimensioni di un file o dell'output di un comando. Genera un conteggio delle righe, delle parole e dei byte.
+
+---
+
+## 1. Output Standard di `wc`
+
+Se esegui `wc` senza opzioni su un file, otterrai tre valori numerici seguiti dal nome del file:
+`wc seinfeld-characters`
+> **Esempio output:** `17 34 236 seinfeld-characters`
+
+
+
+* **17**: Numero di **righe** (new lines).
+* **34**: Numero di **parole**.
+* **236**: Numero di **byte** (spesso confusi con il numero di caratteri).
+
+---
+
+## 2. Opzioni Principali
+
+Per ottenere solo un'informazione specifica, puoi usare le seguenti opzioni:
+
+| Opzione | Descrizione |
+| :--- | :--- |
+| **`-l`** | **Lines:** Conta solo il numero di righe (l'opzione più utilizzata). |
+| **`-w`** | **Words:** Conta solo il numero di parole. |
+| **`-c`** | **Bytes:** Conta la dimensione in byte (attenzione: l'opzione non è `-b`). |
+| **`-m`** | **Characters:** Conta il numero effettivo di caratteri. |
+
+---
+
+## 3. Casi d'Uso e "Trucchi" del Mestiere
+
+### Contare file e directory
+Un uso comune è contare quanti elementi ci sono in una cartella combinando `ls` e `wc`:
+`ls -l | wc -l`
+
+> **Tip Tecnico:** Quando usi `ls -l | wc -l`, il risultato includerà sempre una riga extra dovuta alla parola "total" che appare in cima all'output di `ls`. Sottrai sempre **1** dal risultato per avere il numero esatto di file.
+
+### Contare occorrenze specifiche
+Puoi scoprire quante volte una parola appare in un file filtrando con `grep`:
+`grep "Seinfeld" seinfeld-characters | wc -l`
+*Questo comando restituisce il numero esatto di righe che contengono la parola cercata.*
+
+---
+
+## 4. Script Bash di Riepilogo (Esercitazione Finale)
+
+```bash
+# --- ESEMPIO PRATICO COMANDO WC ---
+
+# 1. Analisi completa di un file
+echo "--- Statistiche file ---"
+wc seinfeld-characters
+
+# 2. Contare solo le righe di un file
+echo -ne "\nNumero di righe: "
+wc -l seinfeld-characters | awk '{print $1}'
+
+# 3. Contare quante directory ci sono (Metodo Grep + WC)
+# Cerchiamo le righe che iniziano con 'd' (directory) nell'output di ls -l
+echo -ne "\nNumero di directory trovate: "
+ls -l | grep "^d" | wc -l
+
+# 4. Verificare quante persone hanno il cognome "Seinfeld"
+echo -ne "\nPersone con cognome Seinfeld: "
+grep "Seinfeld" seinfeld-characters | wc -l
+```
+
+---
+
+# Documentazione Tecnica: Confronto File (`diff` e `cmp`)
+
+In Linux, il confronto tra due file è un'operazione fondamentale per il controllo delle versioni e la verifica delle configurazioni. Esistono due strumenti principali con scopi diversi.
+
+---
+
+## 1. I Comandi di Confronto
+
+| Comando | Analisi | Utilizzo Principale |
+| :--- | :--- | :--- |
+| **`diff`** | **Riga per riga** | Ideale per file di testo e codice sorgente. Mostra *cosa* è diverso. |
+| **`cmp`** | **Byte per byte** | Ideale per file binari o verifiche rapide. Mostra *dove* inizia la differenza. |
+
+
+
+---
+
+## 2. Preparazione dell'Ambiente (Esercitazione)
+
+Per comprendere le differenze, creiamo due file simili con una piccola variazione finale:
+
+```bash
+# Creazione del primo file (superman-chars)
+echo "Clark Kent" > superman-chars
+echo "Lois Lane" >> superman-chars
+echo "General Zod" >> superman-chars
+
+# Creazione del secondo file (superman-chars2) con una differenza
+echo "Clark Kent" > superman-chars2
+echo "Lois Lane" >> superman-chars2
+echo "General Peter" >> superman-chars2
+```
+
+---
+
+## 3. Analisi degli Output
+
+### Utilizzo di `diff`
+Il comando `diff` analizza il testo e restituisce le righe discordanti.
+`diff superman-chars superman-chars2`
+
+**Come leggere l'output:**
+* Le righe precedute da `<` indicano il contenuto del **primo file**.
+* Le righe precedute da `>` indicano il contenuto del **secondo file**.
+* Esempio:
+  ```text
+  3c3
+  < General Zod
+  ---
+  > General Peter
+  ```
+  *(Significa: alla riga 3, "General Zod" è stato cambiato in "General Peter")*
+
+### Utilizzo di `cmp`
+Il comando `cmp` è più "silenzioso" e tecnico.
+`cmp superman-chars superman-chars2`
+
+**Output tipico:**
+`superman-chars superman-chars2 differ: byte 23, line 3`
+*(Indica esattamente il punto in cui i due file smettono di essere identici).*
+
+---
+
+## 4. Suggerimenti Utili
+
+* **Visualizzazione Affiancata:** Usa `diff -y` per vedere le differenze in due colonne separate, molto più facile da leggere per file lunghi.
+* **Ignorare il Case:** Usa `diff -i` per ignorare le differenze tra maiuscole e minuscole.
+* **Verifica Rete:** Se lavori in remoto tramite PuTTY, usa `ip a` (o `ifconfig`) per identificare l'IP della macchina prima di iniziare.
+
+
+
+---
+
+## 5. Tabella Riassuntiva Opzioni `diff`
+
+| Opzione | Funzione |
+| :--- | :--- |
+| **`-y`** | Mostra i file affiancati (Side-by-side). |
+| **`-u`** | Formato "unificato" (spesso usato per creare patch). |
+| **`-i`** | Ignora maiuscole/minuscole. |
+| **`-w`** | Ignora gli spazi vuoti. |
+
+# Documentazione Tecnica: Archiviazione e Compressione (`tar` e `gzip`)
+
+In ambiente Linux, la gestione dello spazio e il trasferimento dei dati passano attraverso due fasi distinte: l'archiviazione (raggruppamento) e la compressione (riduzione del peso).
+
+---
+
+## 1. Concetti Fondamentali
+
+* **Tarring (`tar`)**: Processo di unione di più file e directory in un unico contenitore (chiamato *tarball*). Non riduce la dimensione dei file.
+* **Compressing (`gzip`)**: Processo di riduzione della dimensione fisica di un file tramite algoritmi di compressione.
+
+
+
+---
+
+## 2. Il Comando `tar` (Tape Archiver)
+
+Il comando `tar` è lo standard per creare "scatole" digitali che contengono intere strutture di cartelle.
+
+### Sintassi e Opzioni Comuni
+* **`-c`** (Create): Crea un nuovo archivio.
+* **`-x`** (Extract): Estrae il contenuto di un archivio esistente.
+* **`-v`** (Verbose): Mostra l'elenco dei file mentre vengono elaborati.
+* **`-f`** (File): Indica il nome del file su cui operare (deve essere l'ultima opzione prima del nome file).
+
+**Esempio: Archiviare la propria Home directory**
+`tar -cvf backup_personale.tar .`
+*(Il punto `.` indica di includere tutto ciò che si trova nella cartella corrente).*
+
+**Esempio: Estrarre un archivio**
+`tar -xvf backup_personale.tar`
+
+---
+
+## 3. Compressione con `gzip`
+
+Una volta creato un file `.tar`, è possibile comprimerlo per facilitarne l'invio via rete o il salvataggio su disco.
+
+| Azione | Comando | Estensione Risultante |
+| :--- | :--- | :--- |
+| **Comprimi** | `gzip nomefile.tar` | `nomefile.tar.gz` |
+| **Decomprimi** | `gunzip nomefile.tar.gz` | `nomefile.tar` |
+| **Decomprimi (Alt)** | `gzip -d nomefile.tar.gz` | `nomefile.tar` |
+
+
+
+---
+
+## 4. Esercitazione Pratica Guidata
+
+Segui questi passaggi per simulare un backup professionale:
+
+```bash
+# 1. Crea una cartella temporanea e dei file di test
+mkdir esercizio_tar
+cd esercizio_tar
+echo "Contenuto log molto lungo..." > log_sistema.txt
+echo "Altre informazioni..." > config.txt
+
+# 2. Crea l'archivio (Tarring)
+tar -cvf mio_backup.tar log_sistema.txt config.txt
+
+# 3. Comprimi l'archivio (Gzipping)
+gzip mio_backup.tar
+# Ora avrai un file chiamato mio_backup.tar.gz
+
+# 4. Verifica la dimensione ridotta
+ls -lh mio_backup.tar.gz
+
+# 5. Percorso inverso: Decomprimi ed Estrai
+gunzip mio_backup.tar.gz
+tar -xvf mio_backup.tar
+```
+
+---
+
+## 5. Casi d'Uso Reali
+
+Il caso più comune è l'invio di log al supporto tecnico (es. Red Hat). Invece di caricare centinaia di file dalla directory `/var/log` uno alla volta:
+1. Si crea un unico archivio tar di tutta la cartella log.
+2. Si comprime con gzip per minimizzare i tempi di upload.
+3. Si invia l'unico file risultante: `logs_server.tar.gz`.
+
+---
+
+### Tabella Riassuntiva dei Comandi
+
+| Comando | Scopo |
+| :--- | :--- |
+| `tar -cvf file.tar [SORGENTE]` | Crea un archivio non compresso |
+| `tar -xvf file.tar` | Estrae i file da un archivio |
+| `gzip file` | Comprime un file (sostituisce l'originale) |
+| `gunzip file.gz` | Decomprime un file .gz |
+| `tar -czvf file.tar.gz [DIR]` | **Bonus**: Crea ed è comprime in un unico passaggio |
+
+# Documentazione Tecnica: Il Comando `truncate`
+
+Il comando `truncate` viene utilizzato per aumentare o ridurre la dimensione di un file a una grandezza specifica. È uno strumento potente ma potenzialmente distruttivo, da non confondere con la compressione.
+
+---
+
+## 1. Differenze Fondamentali
+
+| Caratteristica | `gzip` / `tar` | `truncate` |
+| :--- | :--- | :--- |
+| **Scopo** | Preservare i dati riducendo lo spazio. | Forzare il file a una dimensione esatta. |
+| **Integrità Dati** | I dati sono al sicuro e recuperabili. | I dati in eccesso vengono **eliminati**. |
+| **Risultato** | Archivio compresso (`.gz`). | File originale modificato fisicamente. |
+
+
+
+---
+
+## 2. Sintassi del Comando
+
+La sintassi base richiede l'opzione `-s` (size) seguita da un valore numerico.
+
+```bash
+truncate -s [DIMENSIONE] [NOME_FILE]
+```
+
+### Unità di Misura supportate:
+* **K**: Kilobyte
+* **M**: Megabyte
+* **G**: Gigabyte
+
+---
+
+## 3. Esercitazione Pratica Guidata
+
+Segui questi passaggi nel terminale per osservare il comportamento del comando:
+
+```bash
+# 1. Crea un file di test con del contenuto
+echo "puffyshirt giddyup yadayada kavorka serenitynow festivus" > Seinfeldwords
+
+# 2. Verifica la dimensione iniziale (circa 57 byte)
+ls -l Seinfeldwords
+
+# 3. Riduci il file a 40 byte (SHRINK)
+truncate -s 40 Seinfeldwords
+# Risultato: Il file viene tagliato. "serenitynow" risulterà troncato.
+
+# 4. Verifica il taglio dei dati
+cat Seinfeldwords
+
+# 5. Estendi il file a 60 byte (EXTEND)
+truncate -s 60 Seinfeldwords
+# Risultato: Il file torna a pesare 60 byte, ma i dati persi non tornano.
+# Linux aggiunge dei "null bytes" per riempire lo spazio vuoto.
+```
+
+
+
+---
+
+## 4. Casi d'Uso Comuni
+
+* **Gestione Log:** Svuotare istantaneamente un file di log che sta riempiendo il disco senza doverlo eliminare e ricreare:
+  `truncate -s 0 access.log`
+* **Test di Storage:** Creare rapidamente file di dimensioni enormi (es. 10GB) per testare lo spazio disco o le performance di trasferimento:
+  `truncate -s 10G file_test_gigante.img`
+
+---
+
+## 5. Nota di Sicurezza: Uscire da VI
+
+Se apri un file esteso con `truncate` usando l'editor `vi`, potresti vedere molti simboli `@` (rappresentano i byte nulli). Per uscire senza fare danni:
+1. Premi **`Esc`**
+2. Digita **`:q!`**
+3. Premi **`Invio`**
+
+---
+
+### Tabella Riassuntiva
+| Comando | Effetto |
+| :--- | :--- |
+| `truncate -s 0 file` | Svuota completamente il file. |
+| `truncate -s 1M file` | Imposta la dimensione a esattamente 1MB. |
+| `truncate -s +50K file` | Aumenta la dimensione attuale di 50KB. |
+| `truncate -s -20M file` | Riduce la dimensione attuale di 20MB. |
+
+# Documentazione Tecnica: Unione e Suddivisione File (`split` e `cat`)
+
+In ambiente Linux, la capacità di scomporre file di grandi dimensioni in segmenti più piccoli o di riunire più file in uno solo è fondamentale per il trasferimento dati e l'analisi dei log.
+
+---
+
+## 1. Unire i File (Combining)
+
+Il comando **`cat`** (concatenate) è lo strumento principale per unire i file. Utilizzando la ridirezione dell'output, è possibile convogliare il contenuto di più sorgenti in un unico file di destinazione.
+
+
+
+### Esempio Pratico
+```bash
+# Unisce file1, file2 e file3 in un nuovo file chiamato file_finale
+cat file1 file2 file3 > file_finale
+```
+
+---
+
+## 2. Suddividere i File (Splitting)
+
+Il comando **`split`** permette di rompere un file di grandi dimensioni in pezzi più piccoli. Questo è utile quando si devono superare limiti di dimensione per l'upload o l'invio via email.
+
+### Sintassi
+```bash
+split [OPZIONI] [FILE_SORGENTE] [PREFISSO]
+```
+
+### Opzioni Comuni
+* **`-l [N]`**: Divide il file ogni **N righe**.
+* **`-b [N]`**: Divide il file ogni **N byte** (es. `10M` per 10 Megabyte).
+* **`-d`**: Utilizza suffissi numerici (`00`, `01`) invece di quelli alfabetici (`aa`, `ab`).
+
+
+
+---
+
+## 3. Esercitazione: Creazione e Suddivisione
+
+Segui questa sequenza di comandi per testare la logica di suddivisione alfabetica automatica di Linux:
+
+```bash
+# 1. Creazione di un file con 7 righe tramite ridirezione
+echo "USA" > paesi.txt
+echo "UK" >> paesi.txt
+echo "UAE" >> paesi.txt
+echo "Canada" >> paesi.txt
+echo "France" >> paesi.txt
+echo "Switzerland" >> paesi.txt
+echo "Japan" >> paesi.txt
+
+# 2. Suddivisione in blocchi da 2 righe l'uno
+# 'f_pezzo' sarà l'inizio del nome di ogni file generato
+split -l 2 paesi.txt f_pezzo_
+
+# 3. Analisi dei risultati
+ls -l f_pezzo_*
+# Output attesi: f_pezzo_aa, f_pezzo_ab, f_pezzo_ac, f_pezzo_ad
+
+# 4. Verifica dell'ultimo file (che conterrà solo l'ultima riga rimasta)
+cat f_pezzo_ad
+# Mostrerà: Japan
+```
+
+---
+
+## 4. Riepilogo Tecnico
+
+| Operazione | Comando | Risultato |
+| :--- | :--- | :--- |
+| **Unione Totale** | `cat * > file_unico` | Riunisce tutti i file della cartella in uno solo. |
+| **Divisione per Righe** | `split -l 1000 file` | Crea file figli da 1000 righe ciascuno. |
+| **Divisione per Peso** | `split -b 50M file` | Crea file figli da 50 Megabyte ciascuno. |
+
+---
+
+## 5. Ricomporre i file
+Se hai ricevuto un file diviso in più parti (es. `parte_aa`, `parte_ab`, `parte_ac`), puoi ricostruire l'originale semplicemente con:
+```bash
+cat parte_* > file_ricostruito.txt
+```
+*(Assicurati che l'ordine alfabetico dei suffissi corrisponda all'ordine logico dei dati).*
+
+# Documentazione Tecnica: Concatenazione di Comandi con `;`
+
+In Linux, la concatenazione (o *command chaining*) permette di eseguire più istruzioni sulla stessa riga. Il separatore principale per l'esecuzione sequenziale è il punto e virgola (`;`).
+
+---
+
+## 1. Funzionamento del Punto e Virgola (`;`)
+
+Il carattere `;` agisce come un separatore che dice alla Shell: "Esegui il primo comando, attendi che finisca, poi esegui il secondo".
+
+
+
+### Caratteristiche Principali
+* **Sequenzialità:** I comandi vengono elaborati rigorosamente da sinistra a destra.
+* **Indipendenza dagli errori:** Se un comando fallisce, la catena **non si interrompe**. Linux passerà comunque all'esecuzione del comando successivo.
+* **Efficienza:** Permette di lanciare una serie di task e lasciare che il sistema li esegua in ordine senza dover intervenire manualmente dopo ogni comando.
+
+---
+
+## 2. Esempi Pratici dal Terminale
+
+### Esecuzione di comandi informativi
+Puoi combinare comandi per ottenere un report immediato del tuo stato:
+```bash
+ls; pwd; whoami
+```
+*(Elenca i file, mostra la cartella attuale e conferma il tuo username in un unico output).*
+
+### Automazione di processi (Creazione e Spostamento)
+Puoi eseguire una serie di operazioni sui file in un'unica riga:
+```bash
+mkdir test_dir; cd test_dir; touch file_vuoto.txt
+```
+
+### Test di tolleranza agli errori
+Osserva cosa succede se inserisci un comando inesistente nel mezzo della catena:
+```bash
+ls; comando_errato; echo "La sequenza è continuata!"
+```
+* **Output 1:** Elenco dei file (successo).
+* **Output 2:** `bash: comando_errato: command not found` (errore).
+* **Output 3:** `La sequenza è continuata!` (il terzo comando viene eseguito nonostante l'errore del secondo).
+
+---
+
+## 3. Riepilogo e Confronto
+
+In Linux esistono diversi modi per concatenare i comandi. Ecco come si posiziona il punto e virgola rispetto agli altri:
+
+| Operatore | Nome | Comportamento |
+| :--- | :--- | :--- |
+| **`;`** | Punto e virgola | Esegue sempre il comando successivo. |
+| **`&&`** | Operatore AND | Esegue il secondo comando **solo se** il primo ha avuto successo. |
+| **`||`** | Operatore OR | Esegue il secondo comando **solo se** il primo è fallito. |
+
+
+
+---
+
+## 4. Consigli per l'uso
+Il punto e virgola è ideale per compiti di routine dove i comandi non dipendono strettamente l'uno dall'altro. Per script critici (es: "compila il codice E SE ha successo avvialo"), è preferibile usare l'operatore `&&`.
+
+**Esercizio consigliato:** Prova a creare un backup e pulire lo schermo in un colpo solo:
+`cp file_importante.txt backup.txt; clear; ls -l`
+
+# Documentazione Tecnica: Linux vs Windows (CLI Comparison)
+
+Sebbene Windows sia noto per la sua interfaccia grafica (GUI), possiede una riga di comando (CMD) che condivide molte logiche con il Terminale Linux. Comprendere le differenze tra i due è essenziale per operare in ambienti IT eterogenei.
+
+---
+
+## 1. Filosofia Operativa
+
+* **Linux (CLI-First):** Progettato per essere gestito via terminale. È estremamente leggero perché non deve sprecare CPU e RAM per gestire finestre e icone, rendendolo ideale per i server.
+* **Windows (GUI-First):** Progettato per l'utente desktop. La riga di comando è uno strumento secondario rispetto all'interfaccia grafica, che però consuma molte più risorse di sistema.
+
+
+
+---
+
+## 2. Tabella dei Comandi Equivalenti
+
+Di seguito sono elencati i comandi per le operazioni quotidiane più comuni:
+
+| Operazione | Comando Linux (Bash) | Comando Windows (CMD) |
+| :--- | :--- | :--- |
+| **Elencare i file** | `ls -l` | `dir` |
+| **Spostarsi tra cartelle** | `cd` | `cd` o `chdir` |
+| **Percorso attuale** | `pwd` | `chdir` (senza argomenti) |
+| **Pulire lo schermo** | `clear` | `cls` |
+| **Copiare file** | `cp` | `copy` |
+| **Spostare/Rinominare** | `mv` | `move` o `ren` |
+| **Eliminare file** | `rm` | `del` |
+| **Cercare testo** | `grep` | `find` |
+| **Confrontare file** | `diff` | `fc` (File Compare) |
+| **Data e Ora** | `date` | `date` / `time` |
+
+---
+
+## 3. Differenze nella Sintassi dell'Aiuto
+
+In Linux, il manuale è centralizzato. In Windows, ogni comando contiene le proprie istruzioni richiamabili con uno "switch".
+
+### Esempio Linux:
+`man ls`
+*(Apre una pagina di manuale dedicata).*
+
+### Esempio Windows:
+`dir /?`
+*(Mostra le opzioni direttamente nel prompt).*
+
+
+
+---
+
+## 4. Note Operative Importanti
+
+* **Case Sensitivity:** Linux distingue tra maiuscole e minuscole (`File.txt` è diverso da `file.txt`). Windows generalmente ignora questa distinzione.
+* **Separatori di Percorso:**
+    * Linux usa la barra dritta: `/home/user/documenti`
+    * Windows usa la barra rovesciata: `C:\Users\User\Documents`
+* **Interruzione Comandi:** In entrambi i sistemi, la combinazione **`Ctrl + C`** permette di interrompere un processo in esecuzione. In Windows è utile quando si lanciano comandi come `time` che restano in attesa di input.
+
+---
+
+## 5. Esercitazione Rapida
+
+Prova a eseguire queste sequenze per notare le differenze di output:
+
+**In Linux:**
+```bash
+pwd; ls -l; date
+```
+
+**In Windows (Prompt dei Comandi):**
+```cmd
+chdir & dir & date /t & time /t
+```
+*(Nota: In Windows CMD si usa `&` invece di `;` per concatenare i comandi su una sola riga).*
+
+---
+
+### Conclusione
+Mentre Windows domina il mercato desktop per la sua facilità d'uso, Linux rimane lo standard per i server aziendali e le applicazioni ad alte prestazioni grazie alla sua efficienza e alla potenza della sua riga di comando.
+
