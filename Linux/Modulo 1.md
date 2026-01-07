@@ -45,20 +45,20 @@ Unix è stato sviluppato da AT&T, General Electric e il Massachusetts institute 
 
 ## Distribuzioni Linux
 
-| Distribuzione | Logo | Descrizione Breve | Scopo |
-| :--- | :---: | :--- | :--- |
-| **Ubuntu** | <img src="" width="40"> | La distro più famosa al mondo, basata su Debian. Offre un'esperienza "chiavi in mano". | Ideale per principianti, desktop e sviluppatori che cercano stabilità. |
-| **Fedora** | <img src="https://upload.wikimedia.org/wikipedia/commons/3/3f/Fedora_logo.svg" width="40"> | Nota per includere sempre le ultimissime versioni dei software e delle tecnologie. | Per chi vuole provare le novità tecnologiche prima di chiunque altro. |
-| **Debian** | <img src="https://upload.wikimedia.org/wikipedia/commons/6/66/Openlogo-debian.svg" width="40"> | Una delle distro più vecchie, focalizzata su stabilità granitica e software libero. | Utilizzata principalmente per server e infrastrutture critiche. |
-| **RHEL** | <img src="https://upload.wikimedia.org/wikipedia/commons/d/d8/Red_Hat_logo.svg" width="40"> | **Red Hat Enterprise Linux**. Sistema commerciale con supporto professionale 24/7. | Scelta obbligata per grandi aziende, banche e governi. |
-| **CentOS** | <img src="https://upload.wikimedia.org/wikipedia/commons/9/9e/Centos_official_logo.svg" width="40"> | Storicamente la copia gratuita di RHEL. Ora esiste come CentOS Stream. | Usata per studio, test o server aziendali senza costi di licenza. |
-| **Arch Linux** | <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Archlinux-vert-dark.svg" width="40"> | Distro minimalista con installazione manuale e modello *Rolling Release*. | Per esperti che vogliono il controllo totale su ogni pacchetto. |
-| **openSUSE** | <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/OpenSUSE_Logo.svg" width="40"> | Progetto solido con lo strumento di configurazione **YaST** per gestire tutto via GUI. Si divide in tumbleweed (con aggiornamenti continui (rolling release), ideale in ambiente di sviluppo e test) e leap (con aggiornamento a rilascio fisso, ideale per l'ambiente di produzione in quanto l'aggiornamento è già testato e stabile) | Ottima alternativa professionale a Windows. |
-| **Linux Mint** | <img src="https://upload.wikimedia.org/wikipedia/commons/3/3f/Linux_Mint_logo_without_text.svg" width="40"> | Basata su Ubuntu, familiare per chi viene da Windows, con interfaccia classica. | Perfetta per chi vuole un computer pronto all'uso immediatamente. C'è un tool integrato per eseguire i media. |
-| **Gentoo** | <img src="https://upload.wikimedia.org/wikipedia/commons/4/48/Gentoo-logo.svg" width="40"> | Ogni pacchetto viene compilato dai sorgenti specificamente per l'hardware dell'utente. | Per chi cerca le massime prestazioni e vuole imparare Linux a fondo. |
-| **Slackware** | <img src="https://upload.wikimedia.org/wikipedia/commons/2/22/Slackware_logo.svg" width="40"> | La più antica ancora mantenuta. Design semplice e fedele alla filosofia Unix. | Per i puristi che preferiscono configurazioni manuali e file di testo. |
-| **Alpine Linux** | <img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/Alpine_Linux_logo.svg" width="40"> | Distro incredibilmente leggera e sicura, basata su musl libc e BusyBox. | Lo standard per i **container Docker** grazie alle dimensioni minuscole. |
-| **Kali Linux** | <img src="https://upload.wikimedia.org/wikipedia/commons/2/2b/Kali-linux-logo.svg" width="40"> | Basata su Debian, pre-installata con strumenti per la sicurezza informatica. | Utilizzata esclusivamente per **Cybersecurity** e Penetration Testing. |
+| Distribuzione | Descrizione Breve | Scopo |
+| :--- | :--- | :--- |
+| **Ubuntu** | La distro più famosa al mondo, basata su Debian. Offre un'esperienza "chiavi in mano". | Ideale per principianti, desktop e sviluppatori che cercano stabilità. |
+| **Fedora** | Nota per includere sempre le ultimissime versioni dei software e delle tecnologie. | Per chi vuole provare le novità tecnologiche prima di chiunque altro. |
+| **Debian** | Una delle distro più vecchie, focalizzata su stabilità granitica e software libero. | Utilizzata principalmente per server e infrastrutture critiche. |
+| **RHEL** | **Red Hat Enterprise Linux**. Sistema commerciale con supporto professionale 24/7. | Scelta obbligata per grandi aziende, banche e governi. |
+| **CentOS** | Storicamente la copia gratuita di RHEL. Ora esiste come CentOS Stream. | Usata per studio, test o server aziendali senza costi di licenza. |
+| **Arch Linux** | Distro minimalista con installazione manuale e modello *Rolling Release*. | Per esperti che vogliono il controllo totale su ogni pacchetto. |
+| **openSUSE** | Progetto solido con lo strumento di configurazione **YaST**. Si divide in *Tumbleweed* (rolling release, per sviluppo/test) e *Leap* (rilascio fisso, per produzione). | Ottima alternativa professionale a Windows. |
+| **Linux Mint** | Basata su Ubuntu, familiare per chi viene da Windows. Include tool integrati per i contenuti multimediali. | Perfetta per chi vuole un computer pronto all'uso immediatamente. |
+| **Gentoo** | Ogni pacchetto viene compilato dai sorgenti specificamente per l'hardware dell'utente. | Per chi cerca le massime prestazioni e vuole imparare Linux a fondo. |
+| **Slackware** | La più antica ancora mantenuta. Design semplice e fedele alla filosofia Unix. | Per i puristi che preferiscono configurazioni manuali e file di testo. |
+| **Alpine Linux** | Distro incredibilmente leggera e sicura, basata su musl libc e BusyBox. | Lo standard per i **container Docker** grazie alle dimensioni minuscole. |
+| **Kali Linux** | Basata su Debian, pre-installata con strumenti per la sicurezza informatica. | Utilizzata esclusivamente per **Cybersecurity** e Penetration Testing. |
 
 ## Utenti Linux
 
@@ -98,8 +98,6 @@ Il kernel Linux è composto da diverse parti fondamentali:
 * Driver del filesystem
 * Gestione della rete
 * Varie altre componenti minori
-
-<img src="https://www.google.com/url?sa=t&source=web&rct=j&url=https%3A%2F%2Fit.wikipedia.org%2Fwiki%2FFile%3ALinux_kernel_diagram.svg&ved=0CBUQjRxqFwoTCIjwvZuD9ZEDFQAAAAAdAAAAABAI&opi=89978449" width="40">
 
 Probabilmente le parti più importanti del kernel (senza le quali nulla funzionerebbe) sono la **gestione della memoria** e la **gestione dei processi**. La gestione della memoria si occupa di assegnare aree di memoria e aree di spazio di **swap** ai processi, alle parti del kernel e per la cache del buffer. La gestione dei processi crea i processi e implementa il **multitasking** scambiando il processo attivo sul processore.
 
