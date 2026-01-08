@@ -535,6 +535,673 @@ Questo comando mostra tutte le connessioni TCP (`-t`), in ascolto (`-l`), espres
 * **2016**: Con il kernel Linux 4.x, diventa ancora più integrato nella gestione di nuovi protocolli.
 * **Oggi**: È lo standard per i sistemisti per il troubleshooting delle performance e della sicurezza di rete.
 
+---
+
+### Introduzione al Protocollo FTP (File Transfer Protocol)
+
+Il protocollo **FTP** è uno standard di rete utilizzato per il trasferimento di file tra un client e un server su una rete informatica. Si basa su un'architettura **client-server** e utilizza connessioni separate per il controllo e per i dati.
+
+In termini semplici, l'FTP è il sistema di regole che permette di spostare un file dal Server A al Server B, definendo parametri come le porte di comunicazione e i metodi di crittografia.
+
+---
+
+#### 1. Requisiti e Concetti Base
+* **Porta di default**: L'FTP utilizza tipicamente la **porta 21** per il controllo (mentre SSH usa la 22 e il DNS la 53).
+* **Modello di comunicazione**: Il mittente agisce come **client**, mentre il destinatario agisce come **server**. Quest'ultimo deve avere un servizio (demone) attivo in ascolto per accettare il trasferimento.
+
 
 
 ---
+
+#### 2. Configurazione del Server (Lato Destinatario)
+Per configurare un server Linux (es. CentOS) affinché riceva file tramite FTP, è necessario installare e configurare il pacchetto `vsftpd` (*Very Secure FTP Daemon*).
+
+**Passaggi principali:**
+1.  **Installazione**: Verificare la connettività internet ed eseguire `yum install vsftpd`.
+2.  **Configurazione**: Modificare il file `/etc/vsftpd/vsftpd.conf` (si consiglia sempre di crearne una copia di backup `.orig`).
+    * Disabilitare l'accesso anonimo: `anonymous_enable=NO`.
+    * Abilitare le modalità ASCII per upload/download.
+    * Impostare il tempo locale: `use_localtime=YES`.
+3.  **Gestione Servizio**:
+    * Avviare il servizio: `systemctl start vsftpd`.
+    * Abilitarlo al boot: `systemctl enable vsftpd`.
+4.  **Firewall**: Fermare il firewall (`systemctl stop firewalld`) o aggiungere una regola specifica per permettere il traffico sulla porta 21.
+5.  **Utente**: Assicurarsi che esista un account utente (es. `iafzal`) per l'autenticazione.
+
+---
+
+#### 3. Configurazione del Client (Lato Mittente)
+Sul computer che invierà il file, è necessario installare il client FTP.
+
+**Procedura di invio:**
+1.  **Installazione client**: Eseguire `yum install ftp`.
+2.  **Preparazione file**: Creare un file di test (es. `kruger`) e popolarlo con dei dati.
+3.  **Connessione**: Avviare la sessione verso l'IP del server:
+    ```bash
+    ftp [INDIRIZZO_IP_SERVER]
+    ```
+4.  **Autenticazione**: Inserire nome utente e password quando richiesto.
+
+---
+
+#### 4. Trasferimento Pratico del File
+Una volta stabilita la connessione interattiva FTP, seguire questi comandi:
+
+* **`bin`**: Imposta la modalità di trasferimento binaria (raccomandata per evitare corruzione dei dati).
+* **`hash`**: Attiva la visualizzazione del progresso tramite il carattere `#` (molto utile per file di grandi dimensioni).
+* **`put [nome_file]`**: Invia il file dal client al server.
+* **`bye`**: Chiude la connessione FTP.
+
+
+
+---
+
+#### 5. Verifica Finale
+Per confermare il successo dell'operazione, è sufficiente collegarsi al server destinatario e controllare la directory home dell'utente con il comando `ls -l`. Il file apparirà con la dimensione corretta e i permessi associati.
+
+---
+
+### Introduzione a SCP (Secure Copy Protocol)
+
+Il protocollo **SCP** (Secure Copy Protocol) viene utilizzato per il trasferimento sicuro di file tra un host locale e un host remoto. Sebbene sia simile all'FTP, SCP si distingue per l'integrazione di sistemi di sicurezza e autenticazione avanzati, rendendolo il metodo preferito in molti contesti amministrativi.
+
+---
+
+#### 1. Caratteristiche e Funzionamento
+A differenza di altri protocolli che richiedono porte dedicate, SCP si appoggia interamente al protocollo **SSH** (Secure Shell).
+
+* **Sicurezza**: Ogni trasferimento è crittografato, garantendo l'integrità e la riservatezza dei dati.
+* **Porta di default**: Utilizza la **porta 22**, la stessa utilizzata per le connessioni SSH standard.
+* **Requisiti**: Affinché il trasferimento avvenga, il demone SSH (*sshd*) deve essere attivo e funzionante sul server di destinazione.
+
+
+
+---
+
+#### 2. Sintassi del Comando
+Il processo di copia di un file verso un server remoto segue una struttura precisa. Si prenda come esempio il trasferimento di un file denominato `Jack` verso un server con indirizzo IP `192.168.1.58`:
+
+```bash
+scp [NOME_FILE] [UTENTE]@[IP_REMOTO]:[PERCORSO_DESTINAZIONE]
+```
+
+Esempio pratico:
+```bash
+scp Jack iafzal@192.168.1.58:/home/iafzal
+```
+
+#### 3. Esecuzione del Trasferimento (Lab Pratico)
+Per testare il comando, si utilizzano due macchine Linux (Client e Server). Ecco la procedura operativa impersonale:
+
+1.  **Preparazione del file**: Sul client, viene creato un file (es. `Jack`) e popolato con del testo per verificarne il contenuto post-trasferimento.
+    * Comando: `echo "Jack is Jerry's uncle" > Jack`
+2.  **Identificazione del Server**: Si recupera l'indirizzo IP della macchina di destinazione tramite il comando `ifconfig` o `ip a`.
+3.  **Avvio della copia**: Si esegue il comando SCP. Se è la prima volta che viene stabilita una connessione verso quel server, il sistema richiederà di accettare l'impronta digitale (*fingerprint*) della chiave SSH digitando `yes`.
+4.  **Autenticazione**: Viene richiesta l'immissione della password dell'utente remoto per autorizzare il trasferimento.
+
+---
+
+#### 4. Verifica della Ricezione
+Al termine dell'operazione, il client visualizza una barra di progresso (100%) indicando la dimensione del file inviato e il tempo impiegato. Sul server di destinazione, è possibile confermare l'avvenuto trasferimento posizionandosi nella directory scelta e utilizzando i seguenti comandi:
+
+* **`ls -l`**: Per verificare la presenza del file e la sua dimensione.
+* **`cat [NOME_FILE]`**: Per assicurarsi che il contenuto sia integro.
+
+> **Nota**: Il comando può essere invertito per "prelevare" un file da un server remoto verso la macchina locale, scambiando semplicemente l'ordine degli argomenti (origine e destinazione).
+
+---
+
+### Introduzione a rsync (Remote Synchronization)
+
+**rsync** è una potente utility riga di comando per il trasferimento e la sincronizzazione efficiente di file e directory, sia localmente sullo stesso computer, sia tra macchine diverse attraverso una rete.
+
+---
+
+#### 1. Perché utilizzare rsync?
+A differenza di strumenti come FTP o SCP, rsync è progettato per la massima efficienza:
+* **Sincronizzazione Delta**: rsync confronta le dimensioni dei file e i tempi di modifica. Se un file è già presente nella destinazione, trasferisce solo le parti modificate (i "delta"), riducendo drasticamente il tempo di trasferimento.
+* **Velocità**: È molto più rapido dei metodi di copia tradizionali per aggiornamenti di file preesistenti.
+* **Utilizzo comune**: Viene ampiamente utilizzato dagli amministratori di sistema per backup automatizzati tramite `crontab`.
+
+---
+
+#### 2. Sicurezza e Protocollo
+* **Porta di default**: Utilizza la **porta 22**, la stessa del protocollo **SSH**.
+* **Integrazione SSH**: Proprio come SCP, rsync si appoggia a SSH (piggyback) per l'autenticazione e la crittografia. Non è necessario installare un server rsync dedicato sulla macchina remota; è sufficiente che il servizio SSH sia attivo.
+
+
+
+---
+
+#### 3. Sintassi di base
+La struttura fondamentale del comando è:
+```bash
+rsync [OPZIONI] [SORGENTE] [DESTINAZIONE]
+```
+
+**Opzioni comuni:**
+* `-a` (**archive**): La modalità archivio permette di preservare permessi, proprietari, timestamp e collegamenti simbolici. È l'opzione più utilizzata per i backup.
+* `-z` (**compress**): Comprime i dati durante il trasferimento per ridurre l'occupazione di banda, utile specialmente su connessioni lente.
+* `-v` (**verbose**): Fornisce informazioni dettagliate sui file trasferiti durante l'esecuzione del comando.
+* `-h` (**human-readable**): Formatta le dimensioni dei file e le velocità di trasferimento in unità leggibili (come KB, MB o GB).
+
+---
+
+#### 4. Esempi Pratici di Utilizzo
+
+**A. Sincronizzazione locale (file e directory)**
+Per sincronizzare un file archivio in una cartella di backup locale:
+```bash
+rsync -zvh backup.tar /tmp/backups/
+```
+
+Per sincronizzare l'intero contenuto di una directory verso una cartella locale:
+```bash
+rsync -azvh /home/iafzal/ /tmp/backups/
+```
+
+**B. Trasferimento verso un server remoto (Push) Inviare un file dal client locale a un server remoto specificando utente e IP:**
+```bash
+rsync -avz backup.tar iafzal@192.168.1.58:/tmp/backups/
+```
+
+**C. Recupero da un server remoto (Pull) Prelevare un file presente sul server remoto per salvarlo in una directory locale:**
+```bash
+rsync -avzh iafzal@192.168.1.58:/home/iafzal/serverfile /tmp/backups/
+```
+
+#### 5. Verifica e Installazione
+Qualora l'utility non fosse disponibile nel sistema, è possibile procedere all'installazione tramite il gestore pacchetti dedicato alla propria distribuzione:
+
+* **Sistemi RHEL/CentOS**: `yum install rsync`
+* **Sistemi Ubuntu/Debian**: `apt-get install rsync`
+
+Per confermare la corretta installazione del pacchetto su sistemi basati su RPM, è possibile eseguire il comando di interrogazione:
+
+```bash
+rpm -qa | grep rsync
+```
+
+---
+
+### Aggiornamenti di Sistema e Repository
+
+I repository (o "repos") sono archivi centralizzati che contengono i pacchetti software per il sistema Linux. La gestione di questi pacchetti avviene principalmente tramite due strumenti: **dnf** (o yum) e **rpm**.
+
+---
+
+#### 1. dnf e yum (Gestori di Pacchetti ad alto livello)
+Il comando **dnf** (Dandified YUM) è l'evoluzione di **yum**. 
+
+* **Utilizzo**: Si utilizza `yum` su versioni datate di CentOS (7 o precedenti) e `dnf` su versioni recenti (CentOS 8+, Red Hat Enterprise Linux).
+* **Funzionamento**: dnf consulta i file di configurazione in `/etc/yum.repos.d/` per trovare l'URL del repository online, scarica il pacchetto e lo installa.
+* **Dipendenze**: dnf è uno strumento "intelligente" poiché risolve automaticamente le dipendenze (installa tutti i pacchetti aggiuntivi necessari al funzionamento del software principale).
+* **Requisiti**: Richiede una connessione internet (o l'accesso a un repository locale configurato).
+
+---
+
+#### 2. rpm (Red Hat Package Manager)
+**rpm** è lo strumento di base per la gestione dei pacchetti nei sistemi Red Hat e derivati.
+
+* **Differenza con dnf**: rpm viene utilizzato per gestire pacchetti già scaricati localmente (file con estensione `.rpm`).
+* **Limiti**: A differenza di dnf, rpm non risolve automaticamente le dipendenze; se mancano componenti necessari, il comando restituirà un errore e l'utente dovrà installarli manualmente.
+* **Query**: È molto utile per interrogare il database dei pacchetti già installati sul sistema.
+
+---
+
+#### 3. Esempi Pratici e Comandi Comuni
+
+Prima di installare pacchetti, è prassi corretta verificare il proprio **hostname** per evitare modifiche su sistemi errati.
+
+**A. Verificare i pacchetti installati**
+Per elencare tutti i pacchetti presenti nel sistema e contarli:
+```bash
+rpm -qa               # Elenca tutti i pacchetti
+rpm -qa | wc -l       # Conta il numero totale di pacchetti (linee di output)
+rpm -qa | grep bind   # Cerca se uno specifico pacchetto (es. bind) è installato
+```
+
+**B. Installare pacchetti con dnf Il comando gestisce download, risoluzione delle dipendenze, installazione e pulizia dei file temporanei:**
+```bash
+dnf install bind      # Installa il pacchetto DNS 'bind'
+```
+**C. Installare e Rimuovere con rpm Per gestire manualmente un file locale o rimuovere un pacchetto:**
+```bash
+rpm -ihv /percorso/pacchetto.rpm   # Installa (-i), mostra progresso (-h) e dettagli (-v)
+rpm -e nome_pacchetto              # Rimuove (erase) un pacchetto dal sistema
+```
+
+**D. Rimuovere pacchetti con dnf Alternativa più completa a `rpm -e:`**
+```bash
+dnf remove bind       # Rimuove il pacchetto e gestisce le relative dipendenze
+```
+
+#### Riepilogo differenze
+
+Il confronto tra i due strumenti permette di comprendere quale utilizzare in base allo scenario operativo (presenza di internet, gestione delle dipendenze o necessità di interrogazione).
+
+| Caratteristica | dnf / yum | rpm |
+| :--- | :--- | :--- |
+| **Livello** | Alto livello (Gestore completo) | Basso livello (Gestore pacchetti) |
+| **Download** | Automatico dai repository online | Richiede file locale `.rpm` pre-scaricato |
+| **Dipendenze** | Risolte e installate automaticamente | Segnalate ma non risolte automaticamente |
+| **Utilizzo principale** | Installazione e aggiornamento software | Query del database e installazioni offline |
+| **Connessione** | Necessaria (Internet o Repo locale) | Non necessaria (opera su file locali) |
+
+
+
+---
+
+### Gestione degli Aggiornamenti di Sistema e Patching
+
+L'aggiornamento del sistema e la gestione delle patch sono attività critiche per la sicurezza e la stabilità. A seconda delle policy aziendali, queste operazioni possono essere eseguite periodicamente (ad esempio, su base trimestrale).
+
+---
+
+#### 1. Tipologie di Aggiornamento
+In ambito Linux, si distinguono due tipi principali di aggiornamento:
+
+* **Aggiornamento di Versione Major (Maggiore)**: Passaggio da una versione principale all'altra (es. da CentOS 7 a 8, o da 8 a 9).
+    * **Nota**: Non è possibile eseguire questo passaggio tramite il semplice comando `dnf`. In genere richiede il backup dei dati, la reinstallazione del sistema da zero e il trasferimento dei file, sebbene esistano procedure specifiche più complesse.
+* **Aggiornamento di Versione Minor (Minore)**: Passaggio tra revisioni della stessa versione principale (es. da Red Hat 9.1 a 9.2).
+    * **Rolling Release**: Sistemi come **CentOS Stream 9** seguono un modello a rilascio continuo. Non presentano versioni puntuali (9.1, 9.2), ma mostrano solo la versione major. Al contrario, Red Hat Enterprise Linux (RHEL) o versioni precedenti di CentOS mantengono la distinzione delle versioni minor.
+
+---
+
+#### 2. Comandi Principali per l'Aggiornamento
+Il gestore pacchetti `dnf` offre due opzioni principali, con una differenza fondamentale nella gestione dei pacchetti obsoleti:
+
+| Comando | Descrizione | Gestione Pacchetti Vecchi |
+| :--- | :--- | :--- |
+| **`dnf update`** | Aggiorna i pacchetti alla versione più recente. | **Preserva** le versioni precedenti (utile per compatibilità). |
+| **`dnf upgrade`** | Aggiorna i pacchetti alla versione più recente. | **Elimina** i pacchetti obsoleti sostituiti dai nuovi. |
+
+**Utilizzo del flag `-y`**:
+L'aggiunta dell'opzione `-y` (es. `dnf update -y`) istruisce il sistema a rispondere automaticamente "sì" a ogni richiesta di conferma, permettendo un'esecuzione non interattiva.
+
+---
+
+#### 3. Esecuzione e Verifica (Lab Pratico)
+
+**A. Verificare la versione corrente**
+Prima di procedere, è fondamentale identificare il sistema operativo in uso per evitare errori:
+```bash
+cat /etc/redhat-release
+# Oppure utilizzare uname
+uname -a
+```
+
+**B. Controllo della connettività Poiché dnf deve scaricare i pacchetti dai repository online, è necessario assicurarsi che la macchina abbia accesso a Internet:**
+```bash
+ping google.com
+```
+
+**C. Avvio del processo di aggiornamento Eseguendo `dnf update`, il sistema esegue le seguenti fasi:**
+
+1. **Analisi delle dipendenze:** Identifica quali pacchetti aggiuntivi sono necessari (es. come l'installazione di Java per certi software).
+2. **Download**: Scarica tutti i pacchetti necessari e le relative dipendenze.
+3. **Verifica GPG**: Richiede l'importazione delle chiavi GPG ufficiali per garantire l'autenticità e l'integrità dei pacchetti, evitando l'installazione di software malevolo.
+4. **Installazione**: Applica gli aggiornamenti e pulisce i processi temporanei.
+
+---
+
+### Creazione di un Repository Locale da DVD/ISO
+
+La creazione di un repository locale è una procedura essenziale per gestire l'installazione di software in ambienti privi di accesso a Internet o dove non sia presente un server di gestione pacchetti centralizzato (come Red Hat Satellite).
+
+---
+
+#### 1. Preparazione del Sistema
+Prima di procedere, è consigliabile eseguire uno **snapshot** della macchina virtuale (se applicabile) per poter ripristinare lo stato del sistema in caso di errori critici.
+
+Sulle versioni più recenti di CentOS/RHEL (8 e successive), è necessario installare l'utility `createrepo_c`:
+
+```bash
+dnf install createrepo_c -y
+```
+
+*(Nota: su CentOS 7 o precedenti il comando è `createrepo`, solitamente già presente).*
+
+---
+
+#### 2. Acquisizione dei Pacchetti
+I pacchetti RPM devono essere trasferiti dal supporto (DVD o ISO) al disco locale per renderli accessibili permanentemente.
+
+1.  **Identificazione del punto di montaggio**: Verificare dove è montato il DVD tramite il comando:
+    ```bash
+    df -h
+    ```
+    *In caso di montaggio manuale, utilizzare:* `mount /dev/cdrom /punto/di/mount`.
+
+2.  **Creazione della directory locale**:
+    ```bash
+    mkdir /localrepo
+    ```
+
+3.  **Copia dei file**: Identificare la cartella contenente i pacchetti nel supporto (solitamente sotto `AppStream/Packages`) e copiarne il contenuto. È consigliabile verificare prima lo spazio disponibile con `du -sh`:
+    ```bash
+    cp /run/media/iafzal/CentOS-Stream-9/AppStream/Packages/* /localrepo/
+    ```
+
+---
+
+#### 3. Configurazione del Repository
+Per istruire il gestore pacchetti `dnf` a utilizzare esclusivamente la risorsa locale, è necessario configurare un file dedicato. 
+
+> **Importante**: Spostare o eliminare i file esistenti in `/etc/yum.repos.d/` prima di procedere per evitare che il sistema tenti di connettersi ai mirror online.
+
+1.  Creare il nuovo file di configurazione:
+    ```bash
+    vi /etc/yum.repos.d/local.repo
+    ```
+
+2.  Inserire i seguenti parametri (notare il triplo slash in `baseurl` per indicare il percorso locale):
+    ```ini
+    [CentOS9]
+    name=CentOS9 Locale
+    baseurl=file:///localrepo
+    enabled=1
+    gpgcheck=0
+    ```
+
+---
+
+#### 4. Indicizzazione e Test Finale
+È necessario generare i metadati affinché la directory venga riconosciuta come repository e pulire la cache precedente.
+
+1.  **Generazione metadati**:
+    ```bash
+    createrepo_c /localrepo
+    ```
+
+2.  **Sincronizzazione di dnf**:
+    ```bash
+    dnf clean all
+    dnf repolist all
+    ```
+
+3.  **Verifica dell'installazione**: Testare il repository installando un pacchetto di esempio:
+    ```bash
+    dnf install httpd
+    ```
+
+---
+
+### Gestione Avanzata dei Pacchetti
+
+In questa lezione viene approfondita la gestione dei pacchetti su sistemi CentOS e Red Hat, esplorando l'uso avanzato dei comandi `dnf` e `rpm`. L'obiettivo è comprendere come installare, aggiornare, eliminare e interrogare i pacchetti per ottenere dettagli tecnici e individuare i relativi file di configurazione.
+
+---
+
+#### 1. Metodi di Installazione e Rimozione
+Esistono due approcci principali per gestire il software: l'uso di un gestore ad alto livello (`dnf`) o l'uso dello strumento a basso livello (`rpm`).
+
+**A. Utilizzo di DNF (Metodo preferito)**
+DNF gestisce automaticamente il download e la risoluzione delle dipendenze dai repository.
+* **Installazione**:
+    ```bash
+    dnf install ksh -y
+    ```
+* **Rimozione**:
+    ```bash
+    dnf remove ksh -y
+    ```
+
+**B. Utilizzo di RPM (Installazione manuale)**
+Se non si ha accesso ai repository o si dispone solo del file locale `.rpm`, si utilizza il comando `rpm`.
+1.  **Download del pacchetto**: È possibile scaricare il file tramite `wget` (se si ha l'URL diretto):
+    ```bash
+    wget [https://esempio.com/percorso/pacchetto.rpm](https://esempio.com/percorso/pacchetto.rpm)
+    ```
+2.  **Installazione**: L'opzione `-ivh` sta per *install*, *verbose* (dettagliato) e *hash* (barra di avanzamento):
+    ```bash
+    rpm -ivh ksh-2020.0.0-1.el9.x86_64.rpm
+    ```
+3.  **Rimozione**: Si utilizza l'opzione `-e` (*erase*). È necessario specificare il nome esatto del pacchetto:
+    ```bash
+    rpm -e ksh
+    ```
+
+---
+
+#### 2. Interrogazione e Informazioni sui Pacchetti
+Il comando `rpm` permette di interrogare il database locale per ottenere informazioni sui pacchetti installati.
+
+| Comando | Descrizione |
+| :--- | :--- |
+| `rpm -qa | grep ksh` | Verifica se il pacchetto è installato (*query all*). |
+| `rpm -qi ksh` | Mostra informazioni dettagliate (versione, data, descrizione). |
+| `rpm -qc ksh` | Elenca i **file di configurazione** del pacchetto (solitamente in `/etc`). |
+| `rpm -qf /percorso/file` | Identifica a quale pacchetto appartiene un file o comando. |
+
+
+
+---
+
+#### 3. Identificare l'Origine di un Comando
+Per sapere quale pacchetto fornisce un comando specifico (es. `pwd` o `ls`), si segue questa procedura:
+
+1.  Trovare il percorso completo del comando:
+    ```bash
+    which pwd
+    ```
+    *Esempio di output: `/usr/bin/pwd`*
+
+2.  Interrogare il pacchetto di origine tramite il file:
+    ```bash
+    rpm -qf /usr/bin/pwd
+    ```
+    *Risultato: `coreutils-8.32-31.el9.x86_64`*
+
+> **Nota**: La rimozione del pacchetto `coreutils` renderebbe il sistema instabile poiché comandi essenziali come `pwd` non sarebbero più disponibili.
+
+---
+
+### Ripristino di Aggiornamenti e Patch (Rollback)
+
+In qualità di amministratore di sistema, l'aggiornamento dei pacchetti e l'applicazione di patch di sicurezza sono attività critiche. Tuttavia, i nuovi aggiornamenti possono talvolta introdurre problemi di compatibilità con le applicazioni o i database esistenti. In questa lezione viene spiegato come gestire e annullare tali aggiornamenti.
+
+---
+
+#### 1. Best Practice: Snapshot su Macchine Virtuali
+Prima di eseguire qualsiasi aggiornamento (`yum update` o `yum upgrade`), la strategia di rollback più sicura per chi opera in ambienti virtualizzati (come Oracle VirtualBox, VMware o piattaforme Cloud) è l'utilizzo degli **snapshot**.
+
+* **Vantaggio**: Permette di riportare l'intero sistema allo stato esatto precedente l'aggiornamento in pochi secondi.
+* **Procedura**: Creare uno snapshot rinominandolo con la data corrente prima di applicare le patch. Se il sistema diventa instabile, utilizzare la funzione "Revert" o "Ripristina".
+
+
+
+---
+
+#### 2. Differenza tra Update e Upgrade
+È fondamentale distinguere i due comandi prima di eseguire un aggiornamento di sistema:
+
+* **`yum update`**: Aggiorna i pacchetti alla versione più recente, ma **preserva** le versioni obsolete nel sistema. È il metodo più sicuro se si prevede di dover effettuare un rollback.
+* **`yum upgrade`**: Aggiorna i pacchetti e **elimina** quelli obsoleti. Questo rende il rollback tramite cronologia molto più difficile o impossibile.
+
+---
+
+#### 3. Rollback tramite Cronologia YUM (Macchine Fisiche e Virtuali)
+Se non è possibile usare gli snapshot (ad esempio su server fisici), si utilizza lo strumento di cronologia di YUM/DNF.
+
+**A. Annullare l'installazione di un singolo pacchetto**
+1.  Identificare l'ID dell'operazione:
+    ```bash
+    yum history
+    ```
+2.  Annullare l'operazione specifica (sostituendo `ID` con il numero trovato, es. 17):
+    ```bash
+    yum history undo ID
+    ```
+
+**B. Rollback di un intero aggiornamento di sistema**
+Se un aggiornamento massivo (es. 150+ pacchetti) causa problemi, è possibile tentare il rollback dell'intera transazione:
+1.  Trovare l'ID della transazione "update":
+    ```bash
+    yum history
+    ```
+2.  Eseguire l'undo della transazione:
+    ```bash
+    yum history undo 19
+    ```
+    *Il sistema proporrà il downgrade automatico di tutti i pacchetti coinvolti alla versione precedente.*
+
+---
+
+#### 4. Avvertenze Importanti
+* **Stabilità del sistema**: Red Hat e CentOS non raccomandano il downgrade di intere versioni "minor" (es. da 7.5 a 7.1) su macchine fisiche, poiché il sistema potrebbe trovarsi in uno stato instabile.
+* **Installazione pulita**: Se un rollback fallisce o non è possibile, la soluzione consigliata è procedere con una nuova installazione della versione specifica compatibile con l'applicazione.
+
+---
+
+### Connettività Remota: SSH vs Telnet
+
+In ambiente Linux, SSH (Secure Shell) e Telnet sono i due servizi principali utilizzati per accettare connessioni da computer esterni. Sebbene servano allo stesso scopo, differiscono radicalmente per quanto riguarda la sicurezza.
+
+---
+
+#### 1. Differenze Fondamentali
+Il modello di connessione si basa sul paradigma **Client/Server**. Quando ci si connette a un altro sistema, il proprio computer agisce come client, mentre il computer remoto agisce come server.
+
+* **Telnet**: È un protocollo datato e **non sicuro**. Tutte le comunicazioni (inclusi username e password) vengono inviate in chiaro. Per questo motivo, la maggior parte delle aziende non lo utilizza più ed è spesso escluso dalle installazioni standard di Linux.
+* **SSH**: È il protocollo moderno e **completamente sicuro**. Cripta tutto il traffico tra il client e il server, rendendolo lo standard per l'amministrazione remota.
+
+
+
+---
+
+#### 2. Gestione del Servizio SSH (sshd)
+Il demone che gestisce le connessioni SSH in entrata si chiama `sshd`. Se questo processo viene interrotto, il server rifiuterà qualsiasi tentativo di accesso remoto.
+
+**Comandi principali per la gestione:**
+
+* **Verifica dello stato del servizio**:
+    ```bash
+    systemctl status sshd
+    ```
+    *Cercare la dicitura "active (running)" nell'output.*
+
+* **Verifica del processo tramite `ps`**:
+    ```bash
+    ps -ef | grep sshd
+    ```
+
+* **Arresto del servizio** (Attenzione: interrompe la possibilità di nuovi accessi):
+    ```bash
+    systemctl stop sshd
+    ```
+
+* **Avvio del servizio**:
+    ```bash
+    systemctl start sshd
+    ```
+
+
+
+---
+
+#### 3. Test di Connettività
+È possibile testare il servizio tentando una connessione SSH verso l'indirizzo IP locale (localhost) o l'IP della macchina stessa:
+
+1.  **Identificare l'IP**:
+    ```bash
+    ip addr
+    ```
+2.  **Tentare l'accesso**:
+    ```bash
+    ssh root@192.168.1.12
+    ```
+
+Se il servizio è attivo, verrà richiesta la password. Se è spento, il client restituirà l'errore: `Network error: Connection refused`.
+
+---
+
+#### 4. Installazione di Telnet (Solo per Troubleshooting)
+Sebbene sconsigliato per l'accesso remoto, Telnet viene talvolta installato come strumento di diagnostica per verificare se una specifica porta di rete è aperta.
+
+* **Installazione**:
+    ```bash
+    dnf install telnet -y
+    ```
+
+---
+
+### DNS: Domain Name System
+
+Il DNS è il sistema fondamentale che permette di tradurre i nomi di dominio leggibili dall'uomo (come google.com) in indirizzi IP numerici comprensibili dai computer. Senza il DNS, dovremmo ricordare gli indirizzi IP di ogni sito web, proprio come dovremmo ricordare a memoria ogni numero di telefono se non avessimo una rubrica sui nostri smartphone.
+
+---
+
+#### 1. Concetti Fondamentali e Record DNS
+In un colloquio di lavoro su Linux, è molto probabile che ti vengano chiesti i seguenti tipi di record:
+
+* **A Record (Address):** Traduce un **Hostname in un Indirizzo IP**.
+* **PTR Record (Pointer):** Traduce un **Indirizzo IP in un Hostname** (Reverse Lookup).
+* **CNAME (Canonical Name):** Crea un **Alias** (traduce un hostname in un altro hostname). Ad esempio, più server con nomi diversi possono rispondere tutti all'alias "google.com".
+
+
+
+---
+
+#### 2. Componenti del Servizio DNS in Linux
+* **Pacchetto:** Il software principale si chiama `bind` (Berkeley Internet Name Domain).
+* **Demone:** Il processo che gira in background si chiama `named` (Name Daemon).
+* **Directory di configurazione:** `/etc/`
+* **File di configurazione principale:** `/etc/named.conf`
+* **Directory dei file di zona:** `/var/named/` (dove risiedono i database dei nomi).
+
+---
+
+#### 3. Configurazione del Laboratorio
+In questo scenario, configuriamo un server DNS per il dominio fittizio `lab.local`.
+
+
+
+**A. Installazione**
+```bash
+dnf install bind bind-utils -y
+```
+
+**B. Modifica di `/etc/named.conf`**
+Bisogna istruire il server ad ascoltare sull'indirizzo IP della propria interfaccia di rete (es. `enp0s3`) e definire le zone:
+* **Forward Zone (`forward.lab`):** Per le ricerche nome -> IP.
+* **Reverse Zone (`reverse.lab`):** Per le ricerche IP -> nome.
+
+
+
+**C. Creazione dei File di Zona**
+I file in `/var/named/` devono contenere i record specifici. 
+> **Importante:** Ogni volta che si modifica un file di zona, è necessario incrementare il **Serial Number** all'interno del file affinché le modifiche vengano riconosciute.
+
+---
+
+#### 4. Strumenti di Verifica e Test
+Dopo aver avviato il servizio con `systemctl start named`, si utilizzano strumenti specifici per testare la risoluzione:
+
+| Comando | Scopo |
+| :--- | :--- |
+| `named-checkconf` | Verifica la sintassi del file di configurazione principale. |
+| `named-checkzone` | Verifica la coerenza di un file di zona specifico. |
+| `dig` | Strumento avanzato per interrogare il DNS (mostra molti dettagli). |
+| `nslookup` | Strumento semplice per testare la risoluzione nome/IP. |
+
+Esempio di test:
+```bash
+nslookup clienta.lab.local
+```
+
+#### 5. Configurazione del Client
+Affinché il sistema utilizzi il nuovo server DNS, è necessario seguire questi passaggi:
+
+1.  **Modifica temporanea**: Modificare il file `/etc/resolv.conf` impostando l'indirizzo del nuovo server:
+    ```bash
+    nameserver 192.168.100.153
+    ```
+2.  **Modifica persistente**: Aggiornare la configurazione della scheda di rete (es. `enp0s3`) all'interno della directory `/etc/NetworkManager/system-connections/` aggiungendo il parametro `DNS=192.168.100.153`.
+3.  **Riavvio**: Riavviare il NetworkManager per applicare le modifiche:
+    ```bash
+    systemctl restart NetworkManager
+    ```
+
+---
+
