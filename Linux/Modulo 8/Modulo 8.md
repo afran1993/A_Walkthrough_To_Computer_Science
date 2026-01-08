@@ -2040,3 +2040,48 @@ Entrambe le versioni utilizzano XFS come file system predefinito, ma con limiti 
 ### Conclusione
 Nonostante le importanti evoluzioni sotto il cofano (Kernel, DNF, nftables), la maggior parte dei comandi fondamentali appresi su RHEL 7 rimane applicabile e valida anche su RHEL 8. La transizione non compromette l'operatività standard, ma offre strumenti più potenti per la gestione di carichi di lavoro moderni.
 
+# Analisi Evolutiva: CentOS Linux vs CentOS Stream
+
+Il cambiamento nel modello di rilascio di CentOS ha generato diversi interrogativi riguardo al futuro del supporto e alla stabilità del sistema. Per comprendere la situazione attuale, è necessario analizzare l'evoluzione del progetto e il mutamento nel flusso di sviluppo dei pacchetti.
+
+---
+
+## 1. Breve Storia di CentOS
+CentOS (Community Enterprise Operating System) nasce nel 2004 per iniziativa di Greg Kurtzer. Poiché il codice sorgente di Red Hat Enterprise Linux (RHEL) è open-source e disponibile al pubblico, fu possibile prelevare tale codice, rimuovere i marchi registrati e ridistribuirlo come un nuovo sistema operativo gratuito.
+
+Nel 2014, Red Hat ha acquisito il progetto CentOS, rendendo i due sistemi operativi essenzialmente identici (rapporto 1:1) in termini di codice e funzionalità.
+
+---
+
+## 2. Il Mutamento del Flusso di Sviluppo (Pipeline)
+
+Prima di febbraio 2021, CentOS era considerato un progetto **"downstream"**. Il flusso degli aggiornamenti seguiva questa gerarchia:
+
+1.  **Fedora:** Il progetto sperimentale dove vengono introdotte le nuove tecnologie.
+2.  **RHEL:** La versione stabile e certificata per uso aziendale.
+3.  **CentOS:** La versione che riceveva i pacchetti solo dopo che questi erano stati stabilizzati e rilasciati in RHEL.
+
+
+
+A partire da febbraio 2021, con l'introduzione di **CentOS Stream**, la sequenza è stata invertita. CentOS è diventato un progetto **"upstream"** rispetto a RHEL:
+
+1.  **Fedora:** Rimane il punto di partenza sperimentale.
+2.  **CentOS Stream:** Funge da piattaforma di sviluppo intermedia. Qui vengono testati gli aggiornamenti prima che vengano inclusi nella versione stabile di RHEL.
+3.  **RHEL:** La versione finale che riceve i pacchetti consolidati da CentOS Stream.
+
+
+
+In sintesi, mentre fino a CentOS 8 gli aggiornamenti venivano "spinti" da RHEL verso CentOS, con CentOS Stream gli aggiornamenti transitano da CentOS verso RHEL.
+
+---
+
+## 3. Considerazioni sull'Apprendimento
+Nonostante il cambio di architettura nello sviluppo, l'apprendimento di CentOS rimane fondamentale. CentOS Stream è, a livello operativo, quasi identico a RHEL. 
+
+* **Rilevanza:** Le competenze acquisite su CentOS sono direttamente trasferibili a RHEL e ad altre distribuzioni derivate.
+* **Stato attuale:** Ad oggi, **CentOS Stream 9** rappresenta la versione più recente e il punto di riferimento per chi desidera operare in ambienti basati sull'ecosistema Red Hat.
+
+L'essenza dell'amministrazione di sistema Linux rimane invariata, indipendentemente dalla specifica variante utilizzata.
+
+---
+
