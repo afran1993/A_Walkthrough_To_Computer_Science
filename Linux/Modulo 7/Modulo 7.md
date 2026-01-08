@@ -2020,3 +2020,1379 @@ systemctl restart nagios
 Dopo il riavvio, è possibile accedere alla console di monitoraggio tramite browser digitando l'indirizzo IP del server seguito dal percorso `/nagios`:
 
 URL di esempio: `http://192.168.100.161/nagios`
+
+---
+
+# Hardening del Sistema Operativo Linux
+
+L'**hardening** (irrobustimento) è il processo di messa in sicurezza di un sistema informatico attraverso la riduzione della sua superficie di attacco. In ambito professionale, la capacità di rendere un sistema Linux meno vulnerabile ad attacchi e virus è una delle competenze più richieste.
+
+Di seguito vengono analizzate le strategie fondamentali per rendere sicuro un sistema operativo Linux.
+
+---
+
+## 1. Gestione degli Account Utente
+La sicurezza inizia dal controllo degli accessi e dall'identità degli utenti.
+
+* **Convenzione sui nomi (Naming Convention):** Si raccomanda di evitare nomi utente standard o facilmente prevedibili (come `admin`, `oracle` o `root` per servizi specifici). L'uso di nomi personalizzati o meno comuni riduce l'efficacia degli attacchi brute-force.
+* **Gestione degli UID:** Per standard industriale, è preferibile assegnare UID (User ID) superiori a **10.000** per gli utenti fisici, rendendo più difficile indovinare gli identificativi di sistema.
+* **Analisi degli utenti:** È possibile visualizzare tutti gli account di sistema consultando il file:
+    ```bash
+    cat /etc/passwd
+    ```
+
+### Politiche delle Password
+È fondamentale definire criteri di scadenza e complessità delle password.
+* **Comando `chage`:** Permette di visualizzare e modificare la "vecchiaia" della password di un utente.
+    ```bash
+    chage -l <username>   # Visualizza le informazioni di scadenza
+    ```
+* **File di configurazione:**
+    * `/etc/shadow`: Contiene le password cifrate e i parametri di scadenza.
+    * `/etc/login.defs`: Definisce i valori predefiniti per l'intero sistema (es. lunghezza minima della password, si raccomanda almeno **12-13 caratteri**).
+    * `/etc/pam.d/system-auth`: Configurazione avanzata dei moduli di autenticazione (PAM).
+
+---
+
+## 2. Rimozione di Pacchetti e Servizi Superflui
+Un sistema con molti software installati è intrinsecamente più vulnerabile.
+
+* **Rimozione pacchetti:** Ogni pacchetto non necessario deve essere rimosso. 
+    ```bash
+    rpm -qa | wc -l         # Conta i pacchetti installati
+    rpm -e <nome_pacchetto> # Rimuove un pacchetto (attenzione alle dipendenze)
+    ```
+* **Stop ai servizi inutilizzati:** Se un server non deve erogare un servizio specifico (es. NFS su un web server), tale servizio va interrotto e disabilitato.
+    ```bash
+    systemctl -a            # Elenca tutti i servizi
+    systemctl stop <servizio>
+    systemctl disable <servizio>
+    ```
+
+---
+
+## 3. Monitoraggio delle Porte in Ascolto
+Occorre verificare regolarmente quali porte sono aperte per accettare traffico in entrata.
+
+```bash
+netstat -tunlp
+```
+
+Se si rileva un servizio attivo su una porta non necessaria (es. porta 53/DNS su un sistema che non è un server DNS), il relativo processo deve essere terminato.
+
+---
+
+## 4. Sicurezza di SSH (Secure Shell)
+Il servizio SSH rappresenta il principale vettore di accesso remoto e deve essere protetto modificando il file di configurazione `/etc/ssh/sshd_config`.
+
+* **Cambio della porta:** Si raccomanda di spostare il servizio dalla porta standard **22** a una porta personalizzata (es. **1022**). Questo riduce drasticamente il numero di attacchi automatizzati.
+* **Disabilitazione dell'accesso Root:** È fondamentale impostare il parametro `PermitRootLogin no`. In questo modo, l'accesso diretto come superutente viene inibito; gli amministratori dovranno autenticarsi con il proprio account personale e successivamente acquisire i privilegi necessari. Questa pratica garantisce la tracciabilità delle azioni nei log di sistema, associando ogni operazione a un utente specifico.
+
+---
+
+## 5. Firewall e Sicurezza di Rete
+Il firewall agisce come un guardiano di sistema, filtrando il traffico in entrata e in uscita in base a regole prestabilite.
+
+* **Versioni e strumenti:** Nei sistemi più recenti (RHEL 7 e successivi) si utilizza **Firewalld**, gestibile tramite il comando `firewall-cmd` o l'interfaccia grafica `firewall-config`. Nelle versioni precedenti si utilizzava **iptables**.
+* **Politica restrittiva:** Un firewall correttamente configurato dovrebbe bloccare tutto il traffico in ingresso per impostazione predefinita, autorizzando esclusivamente le porte e i protocolli necessari per le funzioni specifiche del server.
+
+---
+
+## 6. SELinux (Security-Enhanced Linux)
+Sviluppato dalla **NSA**, SELinux implementa un sistema di controllo degli accessi obbligatorio (**MAC**) che agisce a livello di kernel. A differenza dei permessi standard, SELinux limita le capacità dei processi e delle applicazioni basandosi su contesti di sicurezza predefiniti.
+
+### Stati operativi di SELinux:
+1.  **Enforcing:** Le policy di sicurezza sono attive e ogni violazione viene bloccata e registrata.
+2.  **Permissive:** Il sistema non blocca le azioni, ma registra ogni violazione della policy (stato utile per il debug).
+3.  **Disabled:** Il meccanismo di sicurezza è completamente disattivato.
+
+**Verifica dello stato e dei contesti:**
+```bash
+# Verifica lo stato attuale di SELinux
+sestatus
+
+# Visualizza il contesto di sicurezza di un file specifico
+stat <nome_file>
+```
+
+### 7. Aggiornamenti e Patch di Sicurezza
+Il mantenimento del sistema operativo costantemente aggiornato è un requisito imprescindibile per proteggersi dalle vulnerabilità scoperte di recente. Non è sempre necessario aggiornare ogni singolo pacchetto applicativo, ma le patch di sicurezza devono essere applicate con la massima priorità.
+
+
+
+* **Patch di sicurezza:** È prioritario applicare gli aggiornamenti classificati come "security patches" non appena vengono rilasciati dai vendor (Red Hat, CentOS, ecc.).
+* **Monitoraggio attivo:** Si raccomanda l'iscrizione ai canali ufficiali di notifica e alle mailing list di sicurezza dei vendor. Rimanere informati sui nuovi bug e sulle vulnerabilità **CVE** (Common Vulnerabilities and Exposures) permette di intervenire prima che queste possano essere sfruttate.
+* **Automazione:** Ove possibile, si consiglia di automatizzare il controllo degli aggiornamenti critici, mantenendo però un controllo manuale sulla fase di applicazione in ambienti di produzione per evitare regressioni.
+
+```bash
+# Esempio di comando per verificare e installare i soli aggiornamenti di sicurezza
+yum update --security
+```
+
+Conclusioni sull'Hardening
+
+L'applicazione sistematica di questi punti permette di trasformare una configurazione Linux standard in un sistema "indurito" e pronto per l'esposizione in reti aziendali o pubbliche. Un buon amministratore di sistema non si limita a installare il software, ma ne riduce proattivamente la superficie di attacco.
+
+---
+
+# Installazione di OpenLDAP su Linux
+
+Questa lezione approfondisce l'implementazione di **OpenLDAP**, un servizio fondamentale per la gestione centralizzata degli utenti, simile ad Active Directory di Microsoft ma basato su software open source.
+
+---
+
+## 1. Cos'è OpenLDAP?
+**OpenLDAP** è un'implementazione open source del protocollo **LDAP** (*Lightweight Directory Access Protocol*). Viene sviluppato dal progetto OpenLDAP ed è ampiamente utilizzato per gestire cataloghi di informazioni, come dati di contatto e credenziali di accesso degli utenti, in modo centralizzato.
+
+
+
+### Caratteristiche principali:
+* **Protocollo Internet:** Permette a programmi di posta e altre applicazioni di consultare informazioni sugli utenti da un server remoto.
+* **Licenza:** Rilasciato sotto la *OpenLDAP Public License*.
+* **Compatibilità:** Disponibile per le principali distribuzioni Linux, ma anche per AIX, Android, HP-UX, macOS, Solaris e Windows.
+* **Vantaggi:** Essendo gratuito, rappresenta l'alternativa ideale ad Active Directory in ambienti con migliaia di utenti distribuiti su numerosi server.
+
+---
+
+## 2. Gestione del Servizio: SLAPD
+Una volta completata l'installazione, il demone (servizio) che gestisce le richieste LDAP è denominato **slapd**.
+
+### Comandi principali per la gestione del servizio:
+* **Avvio:** `systemctl start slapd`
+* **Abilitazione al boot:** `systemctl enable slapd`
+* **Riavvio:** `systemctl restart slapd`
+* **Verifica dello stato:** `systemctl status slapd`
+
+---
+
+## 3. Directory delle Configurazioni
+I file di configurazione principali, dove è possibile modificare il comportamento del server, si trovano nel seguente percorso:
+` /etc/openldap/slapd.d/`
+
+---
+
+## 4. Procedura di Installazione
+
+### Verifica della connettività
+Prima di procedere, è indispensabile verificare che la macchina Linux abbia accesso a Internet per scaricare i pacchetti necessari. Si può utilizzare il comando `ping`:
+```bash
+ping google.com
+```
+
+Se il sistema riceve risposta (es. **64 bytes from...**), la connettività è garantita.
+
+### Installazione dei pacchetti
+Per installare tutti i pacchetti relativi a OpenLDAP, si utilizza il gestore di pacchetti `yum` (o `dnf`). Si consiglia l'uso dei caratteri jolly per assicurarsi di includere tutti i client, le librerie e il server necessari:
+
+```bash
+# Installazione di tutti i pacchetti relativi a OpenLDAP
+yum install *openldap* -y
+```
+
+Il sistema mostrerà un riepilogo della transazione, indicando la dimensione del download e i pacchetti coinvolti. Dopo aver confermato l'operazione, il messaggio **"Complete!"** certificherà la corretta installazione dei componenti sul sistema.
+
+---
+
+## 5. Verifica del Processo e Integrazione
+Dopo l'installazione, è necessario verificare che il servizio sia attivo e comprendere come il sistema operativo Linux interagisca con esso per l'autenticazione degli utenti.
+
+### Verifica del processo
+Oltre alla gestione tramite `systemctl`, è possibile confermare che il demone sia effettivamente in esecuzione consultando la tabella dei processi di sistema:
+```bash
+# Verifica del processo slapd tramite grep
+ps -ef | grep slapd
+```
+
+### Configurazione dell'ordine di ricerca (NSS)
+Il file `/etc/nsswitch.conf` (Name Service Switch) è il componente critico che determina l'ordine con cui il sistema operativo consulta i diversi database per recuperare informazioni su utenti, gruppi e host.
+
+Nel contesto di OpenLDAP, è necessario intervenire sulla riga relativa a `passwd` (e opzionalmente `group` e `shadow`) per istruire il sistema a interrogare il server di directory:
+
+* **files:** Rappresenta il database locale tradizionale (es. `/etc/passwd`). È prioritario per garantire l'accesso agli utenti di sistema anche in caso di problemi di rete.
+* **ldap:** Indica al sistema di interrogare il servizio OpenLDAP qualora l'utente non sia presente nei file locali.
+
+
+
+> **Nota di architettura:** In un'infrastruttura di produzione, OpenLDAP viene installato su un server dedicato che funge da Directory Server centrale. I server client vengono configurati per puntare a questo nodo centrale, permettendo agli amministratori di gestire migliaia di account da un unico punto, anziché operare localmente su ogni singola macchina.
+
+---
+
+# Risoluzione dei Problemi di Rete: Il Comando Traceroute
+
+Questa lezione approfondisce l'utilizzo di uno degli strumenti più importanti per il monitoraggio e la risoluzione dei problemi di rete (*troubleshooting*): **traceroute**.
+
+---
+
+### Cos'è Traceroute?
+Il comando **traceroute** viene utilizzato in ambiente Linux per mappare il percorso che un pacchetto di informazioni compie dalla sorgente (il proprio computer) alla destinazione finale (un server o un sito web). 
+
+Ogni tappa intermedia di questo viaggio è chiamata **hop** (salto) e rappresenta un router o un server che processa il traffico durante il transito.
+
+
+
+---
+
+### Funzioni Principali
+L'analisi del tracciamento del traffico permette di:
+* **Individuare perdite di dati:** Identificare esattamente in quale nodo la comunicazione si interrompe, segnalando potenzialmente un server o un router guasto.
+* **Identificare rallentamenti:** Misurare i tempi di risposta per ogni singolo salto, permettendo di localizzare i colli di bottiglia che influenzano negativamente le prestazioni della rete.
+* **Mappare il percorso:** Visualizzare attraverso quali gateway e DNS passa il traffico prima di raggiungere la destinazione.
+
+> **Nota:** Questo comando è presente in quasi tutti i sistemi operativi. In **Windows**, il comando equivalente è `tracert`.
+
+---
+
+### Sintassi e Utilizzo
+La sintassi di base è molto semplice:
+```bash
+traceroute [destinazione]
+```
+
+La destinazione può essere un **nome host** (es. `google.com`), un **indirizzo IP** o una **URL**. 
+
+*Se il sistema non riesce a risolvere il nome host tramite DNS, è necessario utilizzare direttamente l'indirizzo IP della macchina di destinazione.*
+
+---
+
+### Esempio Pratico
+Per testare il comando in un ambiente reale, è possibile seguire questa procedura:
+
+1.  **Verifica connettività:** Prima di iniziare, si esegue un `ping` per assicurarsi che l'interfaccia di rete sia attiva.
+2.  **Esecuzione:**
+    ```bash
+    traceroute google.com
+    ```
+
+**Analisi dell'output:**
+* **Primo Hop:** Corrisponde solitamente al router locale o al gateway aziendale (es. `192.168.1.1`). Rappresenta il "punto di uscita" della propria rete privata.
+* **Hop intermedi:** Mostrano i router del fornitore di servizi (ISP) e i vari nodi di transito internazionali. Se si notano tre asterischi (`* * *`), significa che il nodo non ha risposto entro il tempo limite (spesso per motivi di sicurezza/firewall).
+* **Destinazione finale:** L'ultimo salto indica il raggiungimento dell'IP risolto per l'host richiesto.
+
+
+
+---
+
+### Strumenti Correlati: Il Gateway
+Il motivo per cui il traffico passa per determinati nodi dipende dalla tabella di instradamento del sistema. Per identificare il proprio gateway predefinito (il primo salto), si utilizza:
+```bash
+netstat -rnv
+```
+
+Oppure il comando più moderno:
+```bash
+ip route show
+```
+
+Questi comandi mostrano la rotta `default`, ovvero l'indirizzo IP (es. `192.168.1.1`) a cui vengono inviati tutti i pacchetti destinati all'esterno della rete locale.
+
+---
+
+# Come visualizzare file immagine da riga di comando in Linux
+
+È comune saper gestire file di testo tramite terminale utilizzando strumenti come `vi`, `cat`, `more` o `head`. Tuttavia, sorge spesso il dubbio su come sia possibile visualizzare un **file immagine** senza ricorrere esclusivamente all'interfaccia grafica (GUI).
+
+---
+
+## 1. Cos'è un file immagine?
+I formati di file immagine sono standard per organizzare e memorizzare immagini digitali. I dati possono essere salvati in formato:
+* **Raster:** Dati digitali che possono essere visualizzati su monitor o stampati.
+* **Compresso/Non compresso:** Per ottimizzare lo spazio o mantenere la qualità.
+* **Vettoriale:** Basato su equazioni matematiche per la scalabilità.
+
+---
+
+## 2. Requisiti e Limitazioni
+Sebbene in un ambiente desktop sia sufficiente un doppio clic sull'icona del file, l'apertura tramite comando richiede alcune precisazioni:
+* **Ambiente grafico attivo:** Il comando funzionerà solo se si è loggati direttamente nell'interfaccia grafica di Linux. 
+* **SSH/PuTTY:** Se si accede al server in remoto tramite terminale testuale (SSH), il comando non potrà mostrare l'immagine poiché i terminali testuali non supportano nativamente il rendering grafico.
+
+---
+
+## 3. Installazione di ImageMagick
+Per visualizzare immagini da riga di comando, è necessario installare un pacchetto software specifico chiamato **ImageMagick**.
+
+### Procedura di installazione:
+1.  **Ottenere i privilegi di Root:**
+    ```bash
+    su - 
+    # oppure
+    sudo -i
+    ```
+2.  **Verificare la connettività Internet:**
+    ```bash
+    ping google.com
+    ```
+3.  **Installare il pacchetto:**
+    ```bash
+    yum install ImageMagick -y
+    ```
+    *(Nota: su distribuzioni più recenti si può usare `dnf` invece di `yum`)*.
+
+---
+
+## 4. Visualizzazione dell'immagine
+Una volta installato il software, il comando da utilizzare è `display`.
+
+### Esempio pratico:
+Supponendo di avere un'immagine scaricata nella cartella `Desktop`, i passaggi sono i seguenti:
+
+1.  **Navigare nella cartella corretta:**
+    ```bash
+    cd ~/Desktop
+    ```
+2.  **Eseguire il comando di visualizzazione:**
+    ```bash
+    display nome_file_immagine.jpg
+    ```
+
+
+
+Il comando `display` aprirà una finestra dedicata all'interno dell'interfaccia grafica mostrando il contenuto del file.
+
+---
+
+## 5. Considerazioni finali
+Sebbene nell'amministrazione di sistema aziendale (dove prevalgono i server *headless* senza monitor) l'apertura di immagini da terminale sia un'operazione poco frequente, conoscere questo strumento è utile per completare la propria padronanza della riga di comando Linux e per gestire workstation grafiche.
+
+---
+
+# Configurazione e Sicurezza di SSH (Secure Shell)
+
+Questa lezione esplora il funzionamento di **SSH** e le migliori pratiche per renderlo sicuro. SSH è lo standard per l'accesso remoto ai sistemi Linux e, data la sua importanza, deve essere configurato con attenzione.
+
+---
+
+## 1. Cos'è SSH?
+**SSH** sta per **Secure Shell**. 
+
+* **Shell:** Fornisce l'interfaccia verso il sistema Linux. Traduce i comandi dell'utente per il **Kernel**, che a sua volta gestisce l'hardware. Esistono diversi tipi di shell (Bash, Csh, Ksh).
+* **Ambiente di lavoro:** Quando si effettua l'accesso, il sistema fornisce un prompt. Solitamente, il simbolo `$` indica un utente regolare, mentre il simbolo `#` indica l'utente root.
+* **OpenSSH:** È il pacchetto software che implementa il protocollo SSH. Il demone (il servizio che gira in background) si chiama **sshd**.
+* **Porta predefinita:** SSH utilizza normalmente la porta **22**.
+
+
+
+---
+
+## 2. Pratiche di Sicurezza Essenziali
+Sebbene SSH sia crittografato e sicuro per natura, un amministratore di sistema deve applicare configurazioni aggiuntive per ridurre la superficie di attacco.
+
+> **Raccomandazione:** Prima di modificare i file di configurazione, creare sempre una copia di backup:
+> `cp /etc/ssh/sshd_config /etc/ssh/sshd_config.orig`
+
+### A. Configurazione del Timeout di Inattività
+Per evitare che sessioni SSH lasciate incustodite rimangano aperte (e quindi vulnerabili), è possibile impostare un timeout automatico.
+
+1.  Modificare il file `/etc/ssh/sshd_config`.
+2.  Aggiungere o modificare le seguenti righe:
+    * `ClientAliveInterval 600` (imposta 600 secondi, ovvero 10 minuti).
+    * `ClientAliveCountMax 0` (chiude la sessione se il client non risponde dopo l'intervallo).
+3.  Riavviare il servizio: `systemctl restart sshd`.
+
+### B. Disabilitare il Login dell'Utente Root
+È una pratica fondamentale impedire l'accesso diretto come utente root per prevenire attacchi di forza bruta sull'account amministrativo principale.
+
+* Nel file `sshd_config`, cercare il parametro `PermitRootLogin` e impostarlo su **no**.
+* In questo modo, gli utenti dovranno collegarsi con un account standard e poi acquisire privilegi superiori (tramite `sudo` o `su`).
+
+### C. Disabilitare le Password Vuote
+Per una maggiore sicurezza, è necessario impedire l'accesso remoto ad account che non hanno una password impostata.
+
+* Cercare il parametro `PermitEmptyPasswords` e assicurarsi che sia impostato su **no** (e non sia commentato).
+
+### D. Limitare l'Accesso agli Utenti
+Anziché permettere l'accesso SSH a chiunque, è possibile specificare una lista esclusiva di utenti autorizzati.
+
+* Aggiungere in fondo al file di configurazione: `AllowUsers utente1 utente2`.
+* Tutti gli utenti non presenti in questa lista verranno automaticamente respinti.
+
+### E. Cambiare la Porta Predefinita
+Poiché la maggior parte degli attacchi automatizzati prende di mira la porta 22, spostare il servizio su una porta diversa (es. **2224**) può rendere il sistema meno visibile.
+
+* Modificare il parametro `Port 22` con la porta desiderata.
+* **Attenzione:** Una volta cambiata la porta, sarà necessario specificarla nel client SSH (es. PuTTY) per potersi connettere.
+
+---
+
+## 3. Riepilogo Comandi Utili
+
+| Azione | Comando |
+| :--- | :--- |
+| **Riavvio del servizio** | `systemctl restart sshd` |
+| **Modifica configurazione** | `vi /etc/ssh/sshd_config` |
+| **Verifica porta attiva** | `netstat -tulpn \| grep sshd` |
+
+---
+
+# Accesso Remoto tramite Chiavi SSH (Senza Password)
+
+Questa lezione illustra come configurare l'accesso tra due macchine Linux utilizzando le **chiavi SSH**, eliminando la necessità di inserire manualmente le credenziali a ogni connessione.
+
+---
+
+## 1. Perché utilizzare le chiavi SSH?
+
+L'accesso senza password è fondamentale in due scenari principali:
+* **Accessi ripetitivi:** Se un amministratore deve connettersi a un server remoto molte volte al giorno, l'inserimento continuo di utente e password risulta inefficiente.
+* **Automazione tramite Script:** Questa è la ragione più importante. Gli script eseguiti su un "Server A" che devono compiere operazioni su un "Server B" richiedono un'autenticazione non interattiva (ovvero che non richieda l'intervento umano per digitare la password).
+
+---
+
+## 2. Concetti Fondamentali e Architettura
+
+L'autenticazione avviene tramite una coppia di chiavi generate a livello di utente (utente standard o root).
+
+* **Macchina Client:** Il computer da cui parte la connessione.
+* **Macchina Server (Remota):** Il computer a cui ci si vuole connettere.
+
+Il processo prevede la generazione di una "serratura" (chiave pubblica) da inviare al server e di una "chiave fisica" (chiave privata) da conservare sul client.
+
+
+
+---
+
+## 3. Procedura Operativa
+
+La configurazione si articola in tre passaggi principali eseguiti sulla macchina **Client**:
+
+### Passaggio 1: Generazione delle chiavi
+Si utilizza il comando `ssh-keygen` per creare la coppia di chiavi RSA.
+```bash
+ssh-keygen
+```
+
+* **Locazione:** Il sistema suggerirà di salvare la chiave in `~/.ssh/id_rsa`. Si consiglia di premere **Invio** per accettare il percorso predefinito.
+* **Passphrase:** Per scopi di automazione o test in laboratorio, è possibile lasciare il campo vuoto premendo **Invio**. In ambienti di produzione aziendale, è invece caldamente raccomandato impostarne una per aggiungere un ulteriore livello di protezione.
+
+### Passaggio 2: Copia della chiave sul Server
+Una volta generate le chiavi, la chiave pubblica deve essere trasferita sul server remoto affinché quest'ultimo possa riconoscere e autorizzare il client.
+```bash
+ssh-copy-id root@<IP_DEL_SERVER>
+```
+
+* **Durante questa operazione**, verrà richiesta la password dell'utente root del server per l'ultima volta. Il sistema provvederà a inserire automaticamente la chiave nel file `/root/.ssh/authorized_keys` della macchina remota.
+
+
+
+### Passaggio 3: Verifica dell'accesso
+Completata la copia, è possibile testare la connessione. Se la configurazione è corretta, l'accesso avverrà senza alcuna richiesta di password:
+
+```bash
+ssh root@<IP_DEL_SERVER>
+# Oppure utilizzando il flag -l
+ssh -l root <IP_DEL_SERVER>
+```
+
+## 4. Riepilogo Comandi e File Chiave
+
+| Strumento / File | Descrizione |
+| :--- | :--- |
+| `ssh-keygen` | Genera la coppia di chiavi (pubblica e privata) sul client. |
+| `ssh-copy-id` | Trasferisce la chiave pubblica sul server remoto per autorizzare l'accesso. |
+| `~/.ssh/id_rsa` | **Chiave Privata**: Da custodire sul client (non deve essere mai condivisa). |
+| `~/.ssh/id_rsa.pub` | **Chiave Pubblica**: Da copiare sui server a cui si desidera accedere. |
+| `authorized_keys` | File sul server che elenca le chiavi pubbliche autorizzate all'accesso. |
+
+
+
+> **Nota di sicurezza**: La chiave privata rappresenta l'identità digitale dell'utente. In caso di smarrimento o compromissione, chiunque ne entri in possesso potrà accedere ai server autorizzati senza dover conoscere la password dell'account. È fondamentale che i permessi del file siano impostati correttamente (tipicamente `600`).
+
+---
+
+# Amministrazione di Server Linux con Cockpit
+
+**Cockpit** è uno strumento di amministrazione server sponsorizzato da Red Hat, progettato per offrire un'interfaccia moderna, intuitiva e basata sul web per la gestione dei sistemi Linux.
+
+---
+
+## 1. Caratteristiche Principali
+Cockpit permette di amministrare i server in modo visivo e integrato. Tra le sue funzionalità principali si annoverano:
+* **Monitoraggio delle risorse:** Visualizzazione in tempo reale dell'uso di CPU, memoria e disco.
+* **Gestione account:** Creazione, rimozione e modifica degli utenti.
+* **Gestione di rete:** Configurazione di interfacce, bond, team, bridge e VLAN.
+* **Manutenzione:** Arresto o riavvio del sistema, installazione di aggiornamenti software e gestione dei servizi (`systemd`).
+* **Terminale integrato:** Accesso alla riga di comando direttamente dal browser.
+
+
+
+---
+
+## 2. Installazione e Configurazione
+
+### Verifica della connettività
+Prima di procedere, è necessario assicurarsi che il server possa raggiungere i repository ufficiali tramite una connessione Internet. È possibile verificare la connettività con il comando:
+```bash
+ping -c 4 [www.google.com](https://www.google.com)
+```
+
+### Installazione del pacchetto
+L'installazione deve essere eseguita con privilegi di amministratore (root) o utilizzando il comando `sudo`.
+
+* **Sistemi Red Hat 8 / CentOS 8 (e versioni successive):** Cockpit è spesso installato per impostazione predefinita. Qualora non lo fosse, è possibile procedere con il comando:
+    ```bash
+    dnf install cockpit -y
+    ```
+* **Sistemi CentOS 7 / Red Hat 7:** Il pacchetto è disponibile opzionalmente e può essere installato dai repository ufficiali:
+    ```bash
+    yum install cockpit -y
+    ```
+* **Sistemi Ubuntu / Debian:** Si utilizza il gestore di pacchetti `apt`:
+    ```bash
+    apt-get install cockpit
+    ```
+
+Prima di avviare il servizio, è possibile verificare la corretta installazione del pacchetto tramite il comando `rpm -qa | grep cockpit` (per sistemi basati su RPM).
+
+### Gestione del servizio
+Una volta installato il pacchetto, il servizio associato deve essere avviato e configurato per l'esecuzione automatica al boot del sistema:
+
+```bash
+# Avvio del servizio
+systemctl start cockpit
+
+# Abilitazione all'avvio automatico
+systemctl enable cockpit
+
+# Verifica dello stato operativo
+systemctl status cockpit
+```
+
+## 3. Accesso all'Interfaccia Web
+
+L'applicazione Cockpit è accessibile tramite protocollo HTTPS sulla porta **9090**. Per collegarsi, è necessario utilizzare un browser web e inserire l'indirizzo IP del server seguito dal numero della porta:
+
+`https://<IP_DEL_SERVER>:9090`
+
+> **Configurazione del Firewall:** Se la connessione viene rifiutata, è probabile che il firewall del server stia bloccando il traffico sulla porta 9090. Per risolvere il problema, è possibile autorizzare il servizio in modo permanente:
+> ```bash
+> firewall-cmd --permanent --add-service=cockpit
+> firewall-cmd --reload
+> ```
+> In alternativa, solo per test temporanei, si può arrestare il firewall con il comando `systemctl stop firewalld`.
+
+Al primo accesso, il browser visualizzerà un avviso di sicurezza poiché il certificato SSL è autofirmato dal server. È necessario cliccare su **Avanzate** e selezionare **Accetta il rischio e continua**.
+
+---
+
+## 4. Panoramica delle Funzionalità
+
+Una volta effettuato il login con le credenziali di sistema (utente root o utente con privilegi sudo), l'interfaccia mette a disposizione diversi strumenti organizzati in un menu laterale:
+
+* **Sistema:** Consente di monitorare lo stato di salute generale, l'utilizzo di CPU e memoria, e di eseguire operazioni di spegnimento o riavvio.
+* **Log:** Offre una visualizzazione dettagliata dei messaggi di sistema, con filtri basati sulla gravità degli eventi (errori, emergenze, informazioni).
+* **Archiviazione:** Mostra i dischi installati, le partizioni e i punti di montaggio. Permette inoltre di monitorare le prestazioni di lettura e scrittura.
+* **Rete:** Permette di configurare le interfacce, creare bond, team, bridge o aggiungere VLAN senza dover agire sui file di configurazione manuali.
+* **Account:** Facilita la gestione degli utenti locali, permettendo la creazione o la rimozione di account in pochi clic.
+* **Servizi:** Elenca tutti i servizi `systemd`, consentendo di avviarne o arrestarne l'esecuzione e di modificarne l'abilitazione al boot.
+* **Aggiornamenti Software:** Permette di ricercare e installare aggiornamenti o singole patch di sicurezza, in modo simile ai comandi `yum update` o `dnf upgrade`.
+* **Diagnostica:** Include strumenti per la creazione di report SOS (SOS Report) e la gestione del Kernel Dump (kdump).
+* **Terminale:** Fornisce una console shell interattiva all'interno del browser, identica a una sessione SSH tradizionale.
+
+---
+
+### Conclusione
+Cockpit rappresenta una soluzione ideale per chi desidera gestire server Linux in modo moderno e visivo, mantenendo al contempo la potenza della riga di comando sempre a disposizione grazie al terminale integrato.
+
+---
+
+# Introduzione ai Firewall in Ambiente Linux
+
+Il **firewall** rappresenta la prima linea di difesa per la sicurezza di un sistema. Può essere immaginato come un muro tagliafuoco, una guardia o uno scudo che, basandosi su un insieme di regole predefinite, decide quale traffico dati può entrare o uscire da un server.
+
+
+
+---
+
+## 1. Tipologie di Firewall
+Esistono due categorie principali di firewall in ambito IT:
+* **Firewall Hardware:** Dispositivi dedicati (appliance) solitamente gestiti dai team di rete per proteggere l'intero perimetro aziendale.
+* **Firewall Software:** Applicazioni che girano direttamente sul sistema operativo (Linux, Windows, ecc.). Questo modulo si focalizza sulla gestione del firewall software in ambiente Linux.
+
+---
+
+## 2. Il Modello di Funzionamento
+Il firewall analizza i pacchetti di dati in transito. Ad esempio, se il **Server A** tenta di connettersi al **Server B** tramite il protocollo **SSH (porta 22)**:
+1.  Il firewall intercetta la richiesta.
+2.  Verifica se esiste una regola che autorizza il Server A sulla porta 22.
+3.  In caso positivo, la connessione viene stabilita; in caso negativo, il pacchetto viene rifiutato o scartato.
+
+
+
+---
+
+## 3. Strumenti di Gestione: Iptables e Firewalld
+In Linux esistono principalmente due strumenti per gestire le regole del firewall. Non è raccomandato eseguirli contemporaneamente.
+
+### A. Iptables
+È lo strumento storico e più diffuso. Si basa su una struttura gerarchica composta da:
+* **Tabelle:** (es. *filter*, *nat*) per processare i pacchetti in modi specifici.
+* **Catene (Chains):** Punti di ispezione del traffico. Le principali sono:
+    * **INPUT:** Traffico in entrata verso il server.
+    * **OUTPUT:** Traffico in uscita dal server.
+    * **FORWARD:** Traffico instradato verso un altro dispositivo.
+* **Target:** L'azione da compiere se la regola viene soddisfatta:
+    * **ACCEPT:** Accetta la connessione.
+    * **REJECT:** Rifiuta la connessione inviando una risposta di errore.
+    * **DROP:** Scarta il pacchetto senza fornire alcuna risposta al mittente.
+
+
+
+#### Operazioni con Iptables
+Per utilizzare `iptables`, è necessario disattivare `firewalld`:
+```bash
+systemctl stop firewalld
+systemctl disable firewalld
+systemctl mask firewalld  # Impedisce l'avvio accidentale
+```
+
+#### Installazione e gestione del servizio:
+Per utilizzare `iptables`, è necessario disattivare preventivamente `firewalld` per evitare conflitti tra i due strumenti:
+```bash
+systemctl stop firewalld
+systemctl disable firewalld
+systemctl mask firewalld  # Impedisce l'avvio accidentale da parte di altri programmi
+```
+
+Qualora il pacchetto non fosse presente nel sistema, si procede all'installazione dei componenti necessari tramite il gestore di pacchetti `yum`. È fondamentale assicurarsi che la macchina disponga di connettività internet per raggiungere i repository ufficiali.
+
+```bash
+# Verifica della presenza del pacchetto
+rpm -qa | grep iptables-services
+
+# Installazione del pacchetto dei servizi iptables
+yum install iptables-services -y
+```
+
+Dopo aver completato l'installazione, il servizio deve essere avviato e configurato per l'attivazione automatica al boot del sistema:
+
+```bash
+# Avvio del servizio iptables
+systemctl start iptables
+
+# Abilitazione all'avvio automatico
+systemctl enable iptables
+
+# Verifica che il servizio sia attivo e privo di errori
+systemctl status iptables
+```
+
+Per l'analisi delle regole predefinite o per la gestione della configurazione iniziale, si utilizzano i seguenti comandi:
+
+* **Verifica delle regole:** Tramite il comando `iptables -L` è possibile visualizzare le regole caricate per impostazione predefinita. Generalmente, il sistema include autorizzazioni per il traffico SSH e per l'interfaccia di loopback.
+* **Svuotamento della tabella (Flush):** Qualora si renda necessario eliminare ogni filtro esistente per definire una configurazione personalizzata da zero, si utilizza il comando `iptables -F`.
+
+Una volta eseguito il comando di flush, l'output mostrerà le tre catene fondamentali del filtraggio pacchetti (**INPUT**, **FORWARD** e **OUTPUT**) prive di qualsiasi istruzione associata.
+
+
+
+---
+
+### B. Gestione tramite Firewalld
+
+`Firewalld` rappresenta lo strumento di gestione predefinito per le distribuzioni Linux più moderne. Pur operando sui medesimi principi di filtraggio, introduce un'astrazione basata sulle **Zone**, che permette di raggruppare regole diverse in base al livello di fiducia della rete connessa.
+
+#### Configurazione e Avvio
+Poiché la gestione simultanea di più interfacce firewall è sconsigliata per evitare conflitti logici, è necessario assicurarsi che `iptables` sia arrestato e mascherato prima di procedere con `firewalld`:
+
+```bash
+systemctl stop iptables
+systemctl disable iptables
+systemctl mask iptables
+```
+
+Dopo aver neutralizzato altri servizi concorrenti, si procede all'attivazione di firewalld. Nel caso in cui il servizio risulti mascherato, occorre preventivamente sbloccarlo:
+
+```bash
+# Rimozione del mascheramento e avvio del servizio
+systemctl unmask firewalld
+systemctl start firewalld
+systemctl enable firewalld
+
+# Verifica dello stato del processo
+systemctl status firewalld
+```
+
+#### Analisi dei Servizi e delle Zone
+L'interazione con questo strumento avviene principalmente tramite l'utility `firewall-cmd`. Le operazioni fondamentali per il monitoraggio e la gestione includono:
+
+* **Visualizzazione della configurazione attiva:** Il comando `firewall-cmd --list-all` permette di consultare i dettagli della zona predefinita (solitamente denominata *public*), inclusi i servizi già autorizzati (come `ssh` e `dhcpv6-client`) e le eventuali porte aperte.
+* **Consultazione dei servizi predefiniti:** Tramite `firewall-cmd --get-services` è possibile elencare tutti i servizi che il firewall è in grado di riconoscere nativamente. Questi servizi sono definiti tramite file in formato XML che contengono le informazioni relative alle porte e ai protocolli necessari (es. HTTP sulla porta 80, FTP sulla porta 21).
+* **Aggiornamento del sistema:** Ogni volta che viene apportata una modifica alla configurazione, è necessario eseguire il comando `firewall-cmd --reload`. Questa operazione permette al processo del firewall di caricare le nuove informazioni senza interrompere le connessioni già stabilite.
+
+---
+
+### C. Esempi Pratici di Amministrazione
+Per acquisire dimestichezza con la gestione del traffico, è utile analizzare il comportamento delle **Zone**. In `firewalld`, ogni interfaccia di rete è assegnata a una zona specifica che ne determina il livello di sicurezza.
+
+* **Elenco delle zone disponibili:** Per visualizzare tutte le zone configurate nel sistema, si utilizza il comando:
+    ```bash
+    firewall-cmd --get-zones
+    ```
+* **Verifica della zona predefinita:** Per conoscere quale profilo viene applicato automaticamente alle nuove interfacce:
+    ```bash
+    firewall-cmd --get-default-zone
+    ```
+
+### Conclusione
+Sia `iptables` che `firewalld` operano sui medesimi principi di filtraggio pacchetti (tabelle, catene, regole e target), ma offrono interfacce di gestione differenti. Mentre `iptables` garantisce un controllo granulare e diretto, `firewalld` semplifica l'amministrazione quotidiana attraverso l'uso di astrazioni logiche come zone e servizi.
+
+---
+
+## Ottimizzazione delle Prestazioni del Sistema Linux
+
+Sebbene i sistemi Linux siano generalmente ottimizzati per impostazione predefinita, è possibile apportare ulteriori regolazioni basate sulle prestazioni del sistema o sui requisiti specifici delle applicazioni. In questa sezione viene analizzato come ottimizzare il sistema selezionando profili gestiti dal demone **Tuned** e come gestire la priorità dei processi tramite i comandi **nice** e **renice**.
+
+---
+
+### 1. Il Demone Tuned
+**Tuned** è un servizio di sistema (`systemd`) utilizzato per monitorare e adattare le impostazioni dei componenti hardware e software per migliorare le prestazioni o il risparmio energetico.
+
+* **Definizione di Demone:** Un processo che viene eseguito continuamente in background.
+* **Funzionamento:** Tuned applica impostazioni di sistema all'avvio del servizio o alla selezione di un nuovo profilo. Adatta automaticamente parametri di networking (es. durante il download di file ISO) o impostazioni di I/O (es. in caso di alta attività di lettura/scrittura su disco).
+* **Disponibilità:** Installato di default su CentOS/Red Hat versioni 7, 8 e successive.
+
+#### Profili Predefiniti comuni:
+| Profilo | Scopo |
+| :--- | :--- |
+| **balanced** | Compromesso tra risparmio energetico e prestazioni. |
+| **desktop** | Basato sul profilo *balanced*, ottimizza la risposta delle applicazioni interattive. |
+| **throughput-performance** | Ottimizzato per il massimo throughput (volume di dati elaborati). |
+| **latency-performance** | Ottimizzato per la bassa latenza (velocità di risposta). |
+| **virtual-guest** | Ottimizzato per macchine eseguite come guest in ambienti virtuali. |
+| **virtual-host** | Ottimizzato per sistemi che ospitano macchine virtuali. |
+
+---
+
+### 2. Gestione del Servizio Tuned
+
+Per verificare la presenza del pacchetto e lo stato del servizio, si utilizzano i seguenti comandi:
+
+```bash
+# Verificare l'installazione del pacchetto
+rpm -qa | grep tuned
+
+# Installare il pacchetto (se assente)
+yum install tuned -y  # o 'dnf install tuned' su sistemi recenti
+
+# Gestione del servizio tramite systemctl
+systemctl status tuned
+systemctl start tuned
+systemctl enable tuned
+```
+
+#### Amministrazione dei profili con `tuned-adm`:
+Il comando principale per interagire con il demone e gestire le impostazioni di ottimizzazione è `tuned-adm`. Di seguito vengono elencate le operazioni più comuni:
+
+* **Verifica del profilo attivo:** Per identificare quale profilo sia attualmente utilizzato dal sistema, si esegue:
+    ```bash
+    tuned-adm active
+    ```
+* **Elenco dei profili disponibili:** Per visualizzare tutti i profili predefiniti installati e pronti all'uso:
+    ```bash
+    tuned-adm list
+    ```
+* **Cambio del profilo:** Per passare a un profilo differente (ad esempio per ottimizzare un sistema desktop o un server dedicato al throughput), si utilizza la sintassi:
+    ```bash
+    tuned-adm profile <nome_profilo>
+    # Esempio per impostare il profilo bilanciato:
+    tuned-adm profile balanced
+    ```
+* **Suggerimento automatico:** Il demone è in grado di analizzare le caratteristiche del sistema (come la presenza di virtualizzazione) e consigliare il profilo più adatto tramite il comando:
+    ```bash
+    tuned-adm recommend
+    ```
+* **Disattivazione del servizio:** Qualora si preferisca gestire manualmente ogni parametro senza l'intervento del demone, è possibile disattivare ogni profilo attivo:
+    ```bash
+    tuned-adm off
+    ```
+
+---
+
+### 3. Gestione della Priorità dei Processi: Nice e Renice
+
+Un altro metodo per ottimizzare le prestazioni del sistema consiste nel dare priorità a determinati processi rispetto ad altri. Se un server dispone di una sola CPU, questa può eseguire un'unica computazione alla volta; gli altri processi devono attendere il proprio turno secondo una logica di pianificazione (spesso di tipo *round-robin*).
+
+Attraverso i comandi **nice** e **renice**, è possibile istruire il sistema affinché conceda maggiore tempo di calcolo a processi critici (come un database Oracle) a scapito di quelli meno importanti.
+
+#### Livelli di Priorità e Valori di Nice
+La priorità può essere regolata su 40 livelli distinti:
+* **Valore di Nice (NI):** Spazia da **-20** (massima priorità) a **19** (minima priorità).
+* **Comportamento predefinito:** I processi ereditano normalmente un valore di nice pari a **0**.
+* **Priorità Kernel (PR):** Il kernel Linux mappa i valori di nice dell'utente in un range di priorità interna che va da 0 a 139 (dove 0-99 è riservato ai processi real-time e 100-139 ai processi utente).
+
+[Image: Diagramma di allineamento tra User Nice Level (-20 a 19) e Kernel Priority (0 a 139)]
+
+#### Monitoraggio e Modifica
+Per verificare la priorità dei processi in esecuzione, si può utilizzare il comando `top`, osservando le colonne **PR** e **NI**, oppure utilizzare una variante specifica del comando `ps`:
+```bash
+ps axo pid,comm,nice,cls --sort=-nice
+```
+
+#### Per intervenire direttamente sulle priorità:
+La gestione dei livelli di priorità può essere effettuata sia al momento del lancio di un nuovo processo, sia su un'attività già in esecuzione nel sistema.
+
+1.  **Avvio di un nuovo processo con priorità specifica (`nice`):**
+    Per assegnare una priorità personalizzata a un comando prima della sua esecuzione, si utilizza il comando `nice` seguito dal valore desiderato. Ad esempio, per avviare il monitor di sistema `top` con una priorità molto alta (valore -15), si esegue:
+    ```bash
+    # Sintassi: nice -n <valore> <comando>
+    nice -n -15 top
+    ```
+    In questo modo, il kernel assegnerà al processo una priorità di sistema (PR) più bassa, garantendogli un accesso preferenziale alle risorse della CPU.
+
+2.  **Modifica della priorità di un processo in esecuzione (`renice`):**
+    Qualora sia necessario variare la priorità di un'operazione già avviata senza interromperla, si ricorre al comando `renice`. In questo caso, è indispensabile identificare preventivamente il **PID** (Process ID) del target.
+    ```bash
+    # Esempio: cambiare la priorità del processo con PID 9360 impostando un valore di nice pari a 12
+    renice -n 12 9360
+    ```
+    Dopo l'esecuzione, il sistema confermerà l'avvenuta modifica mostrando il vecchio valore di priorità e quello appena impostato.
+
+### Sintesi e finalità
+L'utilizzo combinato del demone **Tuned** per l'ottimizzazione dei profili hardware/software e dei comandi **nice/renice** per la gestione granulare dei processi, permette di massimizzare le prestazioni del sistema Linux. Queste operazioni assicurano che le applicazioni critiche ricevano le risorse necessarie, migliorando la reattività complessiva dell'infrastruttura.
+
+---
+
+## Guida Completa ai Container in Ambiente Linux
+
+Questa lezione analizza il concetto di container, il loro funzionamento in ambito IT e l'utilizzo degli strumenti nativi di Red Hat, con particolare attenzione a **Podman**.
+
+---
+
+### 1. Cos'è un Container?
+
+Il termine e il concetto derivano dai container per le spedizioni fisiche. Proprio come un container marittimo ha dimensioni standardizzate per essere trasportato ovunque (navi, camion, treni) senza modificare l'infrastruttura, un container IT permette di trasportare software in modo uniforme.
+
+* **Standardizzazione:** Ogni container ha la stessa struttura logica, facilitando lo stoccaggio e il trasporto tra diversi ambienti.
+* **Portabilità:** Funziona su qualsiasi "porto" (server o computer) che supporti la tecnologia dei container.
+
+
+
+---
+
+### 2. I Container nel mondo IT
+
+In passato, uno sviluppatore scriveva codice sul proprio laptop e lo testava con successo. Tuttavia, una volta spostato sul server di produzione, il software spesso smetteva di funzionare a causa di differenze nelle librerie o nelle configurazioni del sistema operativo.
+
+I container risolvono questo problema ("*funziona sulla mia macchina*") impacchettando:
+1.  **Codice sorgente del software.**
+2.  **Librerie necessarie.**
+3.  **File di configurazione.**
+
+**Nota bene:** Un container **non include il sistema operativo**. Esso condivide il kernel della macchina ospite, rendendolo estremamente leggero rispetto a una macchina virtuale. Un singolo sistema operativo può eseguire più container contemporaneamente in modo isolato.
+
+---
+
+### 3. Software per la Gestione dei Container
+
+Esistono diverse soluzioni software per creare e gestire questi pacchetti:
+
+* **Docker:** Lanciato nel 2013, è lo standard più noto. È disponibile sia per Linux che per Windows.
+* **Podman:** Sviluppato da Red Hat (rilasciato nel 2018) come alternativa a Docker. È uno strumento **daemon-less** (senza un processo centrale sempre attivo) e open source.
+
+> **Importante:** In Red Hat Enterprise Linux 8 (RHEL 8), Docker non è supportato ufficialmente; si utilizza preferibilmente Podman.
+
+
+
+---
+
+### 4. Ecosistema Tecnologico Red Hat
+
+Red Hat fornisce un set di strumenti a riga di comando per operare senza la necessità di un motore di container pesante:
+* **Podman:** Gestione diretta di pod, container e immagini (avvio, arresto, stato).
+* **Buildah:** Utilizzato per costruire e firmare nuove immagini di container.
+* **Skopeo:** Strumento per ispezionare, copiare ed eliminare immagini tra diversi registri.
+* **RunC / CRun:** Runtime che forniscono le funzionalità di base per l'esecuzione dei container.
+
+#### Terminologia Chiave
+* **Immagini:** Sono i "template" o i modelli da cui vengono creati i container. Un container può anche essere convertito nuovamente in un'immagine.
+* **Pod:** Gruppi di container distribuiti insieme sullo stesso host. Il logo di Podman (tre foche) rappresenta proprio un gruppo di container che lavorano all'unisono.
+
+---
+
+### 5. Guida Pratica: Installazione e Utilizzo
+
+#### Installazione
+Su sistemi Red Hat 8 o CentOS 7, il pacchetto si installa tramite i gestori di pacchetti standard:
+
+```bash
+# Su Red Hat 8/9
+dnf install podman -y
+
+# Su CentOS 7
+yum install podman -y
+```
+
+Markdown
+
+#### Comandi di Base
+Dopo l'installazione, è possibile interagire con lo strumento tramite l'interfaccia a riga di comando. Di seguito sono riportate le operazioni fondamentali per la gestione dell'ambiente:
+
+* **Verifica della versione:** Per confermare la corretta installazione e conoscere la versione del software in uso:
+    ```bash
+    podman -v
+    ```
+* **Accesso alla documentazione:** È possibile consultare l'aiuto rapido o le pagine del manuale per visualizzare tutte le opzioni disponibili (come `attach`, `build`, `commit`, `cp`, `create`):
+    ```bash
+    podman --help
+    # Oppure per la documentazione estesa:
+    man podman
+    ```
+* **Informazioni sull'ambiente e sui registri:** Il comando `info` permette di visualizzare i dettagli tecnici e l'ordine dei registri (registry) utilizzati per la ricerca delle immagini (ad esempio *registry.access.redhat.com*, *registry.redhat.io* e *docker.io*):
+    ```bash
+    podman info
+    ```
+
+---
+
+#### Gestione delle Immagini e dei Container
+Il flusso di lavoro standard prevede la ricerca di un'immagine preconfigurata, il suo scaricamento e la successiva attivazione come container.
+
+1.  **Ricerca di un'immagine:**
+    Per individuare un'immagine specifica nel repository (ad esempio un server Apache `httpd`), si utilizza il comando di ricerca. I risultati mostreranno l'indice, il nome, la descrizione e il numero di "stelle" (valutazione degli utenti):
+    ```bash
+    podman search httpd
+    ```
+
+2.  **Download (Pull) dell'immagine:**
+    Una volta identificata la sorgente (ad esempio da *docker.io*), si procede al download locale:
+    ```bash
+    podman pull docker.io/library/httpd
+    ```
+
+3.  **Verifica delle immagini scaricate:**
+    Per elencare le immagini presenti sul sistema, complete di ID, tag e dimensione:
+    ```bash
+    podman images
+    ```
+
+4.  **Esecuzione di un container:**
+    Per avviare un container basato sull'immagine scaricata, si utilizza il comando `run`. Nell'esempio seguente vengono usate le opzioni `-d` (esecuzione in background), `-t` (allocazione di una pseudo-TTY) e `-p` (mappatura della porta 8080 dell'host sulla porta 80 del container):
+    ```bash
+    podman run -dt -p 8080:80 docker.io/library/httpd
+    ```
+
+5.  **Monitoraggio dei container attivi:**
+    Per verificare lo stato dei container in esecuzione, identificare il loro ID univoco e controllare le porte assegnate:
+    ```bash
+    podman ps
+    ```
+
+---
+
+## Installazione e Gestione di Docker su Linux
+
+Questa lezione approfondisce l'installazione, la configurazione e la gestione di **Docker**, una piattaforma open-source fondamentale per la containerizzazione, ampiamente utilizzata in ogni ambiente Linux.
+
+---
+
+### 1. Il Concetto di Container
+Il termine "container" deriva dal settore dei trasporti marittimi. Proprio come i container fisici hanno dimensioni standard per adattarsi a navi, camion e magazzini in tutto il mondo, i container IT standardizzano il software.
+
+* **Efficienza:** Non sono necessarie attrezzature speciali per spostarli; si adattano a qualsiasi infrastruttura che supporti lo standard.
+* **Risoluzione del conflitto "funziona sulla mia macchina":** In passato, il codice funzionante sul laptop di uno sviluppatore spesso falliva in produzione. I container risolvono il problema impacchettando codice, librerie e configurazioni in un'unica unità portatile, eliminando i problemi di compatibilità tra ambienti diversi.
+
+> **Nota per l'Amministratore di Sistema:** Il compito principale dell'amministratore è installare, configurare e gestire l'infrastruttura dei container. La scrittura del codice e il packaging dell'applicazione sono responsabilità degli sviluppatori.
+
+---
+
+### 2. Cos'è Docker?
+Docker è una piattaforma aperta per lo sviluppo, la spedizione e l'esecuzione di applicazioni. Permette di separare l'applicazione dall'infrastruttura sottostante, accelerando la distribuzione del software.
+
+* **Docker Engine:** Il cuore del sistema; un demone che gestisce i container tramite lo strumento `systemctl`.
+* **Docker Hub:** Un registro pubblico (simile a un grande "frigo" per pasti pronti) dove è possibile trovare, condividere e archiviare immagini Docker.
+* **Docker Image:** Un "blueprint" o un'istantanea che contiene tutto il necessario per eseguire un'applicazione (codice, runtime, librerie di sistema).
+
+---
+
+### 3. Preparazione all'Installazione (CentOS Stream)
+Prima di procedere, si raccomanda di consultare la documentazione ufficiale su *docs.docker.com*. Esistono due versioni principali:
+1.  **Docker CE (Community Edition):** Gratuita e open-source (scelta per questa lezione).
+2.  **Docker EE (Enterprise Edition):** A pagamento, con funzionalità avanzate per il business.
+
+#### Passaggi Preliminari:
+* **Rimozione versioni precedenti:** È essenziale rimuovere eventuali vecchie installazioni per evitare conflitti.
+* **Verifica privilegi:** Le operazioni devono essere eseguite come utente `root`.
+
+---
+
+### 4. Procedura di Installazione e Configurazione
+
+#### Step 1: Configurazione del Repository
+È necessario installare le utility di gestione e aggiungere il repository ufficiale per garantire l'accesso all'ultima versione stabile.
+
+```bash
+# Installazione delle utility di sistema
+dnf install -y yum-utils
+
+# Aggiunta del repository ufficiale di Docker
+dnf config-manager --add-repo [https://download.docker.com/linux/centos/docker-ce.repo](https://download.docker.com/linux/centos/docker-ce.repo)
+```
+
+#### Step 2: Installazione dei Componenti Core
+Una volta configurato il repository ufficiale, si procede all'installazione dei pacchetti fondamentali che compongono l'ecosistema Docker. Questa operazione scarica il motore di runtime, gli strumenti di gestione e i plugin necessari per le operazioni avanzate.
+
+* **Esecuzione dell'installazione:**
+    Viene utilizzato il gestore di pacchetti `dnf` per installare simultaneamente i seguenti componenti:
+    * **docker-ce:** Il motore Docker vero e proprio (Community Edition).
+    * **docker-ce-cli:** L'interfaccia a riga di comando per interagire con il demone.
+    * **containerd.io:** Il runtime che gestisce il ciclo di vita dei container.
+    * **docker-buildx-plugin:** Plugin per funzionalità di build avanzate.
+    * **docker-compose-plugin:** Strumento per la gestione di applicazioni multi-container.
+
+    ```bash
+    dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    ```
+
+---
+
+#### Step 3: Gestione del Servizio
+Al termine dell'installazione, il servizio Docker non risulta attivo di default. È necessario intervenire manualmente per avviarlo e garantirne la persistenza.
+
+1.  **Avvio del servizio:** Per attivare immediatamente il motore Docker, si esegue:
+    ```bash
+    systemctl start docker
+    ```
+2.  **Abilitazione all'avvio (Boot):** Per far sì che il servizio venga caricato automaticamente ad ogni riavvio del sistema:
+    ```bash
+    systemctl enable docker
+    ```
+3.  **Verifica dello stato:** Per confermare che il processo sia in esecuzione (stato *active/running*):
+    ```bash
+    systemctl status docker
+    ```
+
+---
+
+#### Step 4: Test di Funzionamento
+La verifica finale dell'ambiente avviene tramite l'esecuzione di un container di prova. Il comando `docker run` automatizza l'intero processo di reperimento ed esecuzione.
+
+* **Esecuzione del test:**
+    ```bash
+    docker run hello-world
+    ```
+
+**Analisi del processo di esecuzione:**
+* **Ricerca locale:** Docker verifica la presenza dell'immagine `hello-world` sul disco locale.
+* **Download (Pulling):** Se l'immagine non è presente, viene scaricata automaticamente dai repository ufficiali di **Docker Hub**.
+* **Istanziazione:** Viene creato ed eseguito un nuovo container basato sull'immagine ottenuta.
+* **Output di successo:** La visualizzazione del messaggio *"Hello from Docker"* conferma la corretta installazione e configurazione di tutti i componenti.
+
+---
+
+# Automazione dell'Installazione Linux con Kickstart
+
+**Kickstart** rappresenta una metodologia di automazione per l'installazione di sistemi operativi Linux (Red Hat, CentOS, Fedora). Tale sistema consente di eseguire il deployment del sistema operativo senza intervento umano, pre-configurando tutte le risposte che normalmente verrebbero richieste durante la procedura guidata (Wizard).
+
+---
+
+## 1. Architettura e Funzionamento
+Durante un'installazione standard, l'utente deve definire manualmente parametri quali lingua, fuso orario, partizionamento del disco e selezione del software. Kickstart automatizza queste scelte attraverso un file di configurazione denominato **ks.cfg**.
+
+### Componenti necessari:
+* **Kickstart Server:** Un server (spesso HTTP, FTP o NFS) che ospita il file di configurazione.
+* **File Kickstart:** Documento di testo contenente i parametri di installazione.
+* **Sorgente di Installazione:** Repository dei pacchetti o immagine ISO del sistema operativo.
+* **Mezzo di Avvio:** Supporto per il boot iniziale del client (ISO, USB o rete PXE).
+
+---
+
+## 2. Metodi di Generazione del File Kickstart
+Esistono due approcci principali per la creazione del file di configurazione:
+
+1.  **system-config-kickstart:** Uno strumento grafico (GUI) disponibile su CentOS/RHEL 7 che facilita la selezione dei parametri.
+2.  **File Anaconda (anaconda-ks.cfg):** In ogni sistema Red Hat/CentOS, viene generato automaticamente un file in `/root/anaconda-ks.cfg` al termine di un'installazione manuale. Questo file rispecchia le scelte effettuate e può essere utilizzato come modello.
+
+> **Nota:** Nelle versioni 8 e successive, lo strumento grafico è stato rimosso in favore di sistemi di automazione come **Ansible** o l'uso diretto del file di Anaconda.
+
+---
+
+## 3. Configurazione del Server di Laboratorio
+Per distribuire il file Kickstart via rete, viene tipicamente utilizzato il protocollo HTTP.
+
+### Configurazione del servizio Web:
+```bash
+# Installazione del server Apache
+yum install httpd -y
+
+# Avvio e abilitazione del servizio
+systemctl start httpd
+systemctl enable httpd
+
+# Disabilitazione del firewall per il test
+systemctl stop firewalld
+systemctl disable firewalld
+```
+
+**Pubblicazione del file:**
+Il file di configurazione deve essere reso accessibile nella directory pubblica del server web:
+```bash
+# Copia del file nella Document Root
+cp /root/anaconda-ks.cfg /var/www/html/anaconda-ks.cfg
+
+# Assegnazione dei permessi di lettura
+chmod a+r /var/www/html/anaconda-ks.cfg
+```
+La verifica della corretta pubblicazione avviene accedendo via browser all'indirizzo: `http://<IP_SERVER>/anaconda-ks.cfg`.
+
+#### 4. Esecuzione dell'Installazione Automatizzata
+Per avviare la procedura su un nuovo client, è necessario interrompere il boot dell'immagine ISO (premendo `ESC` nella schermata iniziale) e inserire la stringa di configurazione al prompt di avvio. Questo indirizza l'installer verso il file di configurazione remoto.
+
+
+
+**Analisi del processo:**
+Una volta inviato il comando, l'installer **Anaconda** esegue le seguenti operazioni in autonomia:
+* **Recupero del file:** Il sistema scarica il file `.cfg` via rete utilizzando il protocollo specificato.
+* **Configurazione automatica:** Vengono impostati tastiera, lingua e fuso orario senza prompt per l'utente.
+* **Gestione dello storage:** Viene eseguito il partizionamento del disco rigido secondo i parametri definiti nel file.
+* **Installazione software:** Si procede all'installazione dei pacchetti (solitamente circa 1.300-1.400 per sistemi con interfaccia grafica).
+* **Setup degli account:** Vengono impostate le password di root e creati gli utenti locali specificati.
+
+---
+
+#### 5. Configurazione avanzata: Ambienti senza DHCP
+In assenza di un server DHCP, il client non è in grado di ottenere un indirizzo IP per comunicare con il server Kickstart. In questo scenario, è necessario dichiarare i parametri di rete statici direttamente nella riga di comando di boot.
+
+**Sintassi per IP statico:**
+```text
+linux ks=http://<IP_SERVER>/anaconda-ks.cfg ksdevice=<INTERFACCIA> ip=<IP_CLIENT> netmask=<MASK> gateway=<GW>
+```
+
+**Dettaglio dei parametri:**
+* **ksdevice:** Indica l'interfaccia di rete fisica o virtuale da attivare per la comunicazione iniziale (es. `eth0` per sistemi fisici o `enp0s3` per ambienti virtuali VirtualBox).
+* **ip:** L'indirizzo IP statico da assegnare temporaneamente al client affinché possa raggiungere il server e scaricare il file di configurazione.
+* **netmask:** La maschera di sottorete necessaria per definire l'estensione della rete locale (es. `255.255.255.0`).
+* **gateway:** L'indirizzo del router o del nodo di uscita necessario per l'instradamento dei pacchetti verso il server Kickstart, qualora si trovi in una sottorete differente.
+
+---
+
+#### 6. Scalabilità e Conclusioni
+L'adozione di Kickstart consente una scalabilità elevata: lo stesso file di configurazione può servire simultaneamente un numero illimitato di client. Poiché l'immagine ISO e il file `.cfg` sono accessibili in modalità di sola lettura, è possibile gestire il deployment massivo di server garantendo uniformità di configurazione e una drastica riduzione dei tempi di messa in produzione.
+
+---
+
+# Installazione, Configurazione e Gestione di Ansible in Linux
+
+**Ansible** è una suite di strumenti software per l'implementazione dell'**Infrastructure as Code (IaC)**. Si tratta di una piattaforma open source dedicata al provisioning software, alla gestione delle configurazioni e al deployment di applicazioni.
+
+---
+
+## 1. Concetti Fondamentali
+
+Ansible si distingue per alcune caratteristiche chiave che ne facilitano l'adozione in ambienti IT complessi:
+
+* **Agentless:** Non richiede l'installazione di software aggiuntivo (agenti) sui nodi gestiti. La comunicazione avviene tramite protocolli standard (solitamente SSH).
+* **Basato su YAML:** Utilizza il linguaggio YAML (*Yet Another Markup Language*), un formato leggibile dall'uomo basato su coppie chiave-valore e indentazione, per definire le configurazioni.
+* **Playbook:** Sono file YAML che elencano i task da automatizzare. Descrivono lo stato desiderato del sistema (es. "il software X deve essere presente").
+* **Inventory:** Un file (solitamente `/etc/ansible/hosts`) che elenca gli indirizzi IP o i nomi host dei server da gestire, organizzati eventualmente in gruppi.
+
+
+
+---
+
+## 2. Cronologia Essenziale
+* **2012:** Creazione da parte di Michael DeHaan.
+* **2013:** Rilascio ufficiale come progetto open source.
+* **2015:** Acquisizione da parte di **Red Hat**.
+* **2021:** Rilascio di Ansible Automation Platform 2.
+
+---
+
+## 3. Procedura Operativa (Step-by-Step)
+
+### Step 1: Installazione del Control Node
+Sebbene Ansible sia *agentless* sui nodi remoti, deve essere installato sul nodo di controllo.
+
+```bash
+# Installazione tramite package manager DNF
+dnf install ansible -y
+
+# Verifica dell'installazione
+ansible --version
+```
+*Nota: L'installazione include Ansible Core e Python 3, linguaggio su cui si basa l'esecuzione dei moduli.*
+
+### Step 2: Configurazione dell'Inventory
+È necessario istruire Ansible su quali macchine operare modificando il file host, che funge da inventario dei nodi gestiti.
+
+```bash
+vi /etc/ansible/hosts
+```
+
+Esempio di configurazione per gestire la macchina locale:
+
+```Ini, TOML
+[webservers]
+localhost ansible_connection=local
+```
+
+### Step 3: Verifica della Connessione
+Il modulo `ping` permette di testare la raggiungibilità dei nodi definiti nell'inventory. A differenza del comando di rete standard, questo modulo verifica la capacità di Ansible di connettersi via SSH ed eseguire codice Python sul target.
+
+```bash
+ansible -m ping webservers
+```
+
+*Un output con stato "success" e risposta "pong" in formato JSON conferma la corretta configurazione della comunicazione tra il nodo di controllo e gli host.*
+
+---
+
+### Step 4: Configurazione dell'Accesso Remoto (SSH)
+Per la gestione di server remoti, è necessaria l'autenticazione tramite chiavi SSH. Questo metodo abilita Ansible a operare in modalità non presidiata, evitando la richiesta manuale di password per ogni operazione e garantendo un canale di comunicazione sicuro.
+
+
+
+1.  **Generazione della coppia di chiavi:** `ssh-keygen -t rsa -b 2048`
+2.  **Trasferimento della chiave pubblica sul server remoto:** `ssh-copy-id utente@IP_REMOTO`
+3.  **Test di accesso:** `ssh utente@IP_REMOTO` (l'accesso deve avvenire senza inserimento di credenziali).
+
+---
+
+### Step 5: Creazione ed Esecuzione di un Playbook
+L'automazione vera e propria viene implementata tramite i Playbook. Si ipotizzi di dover installare il server web Apache (`httpd`) simultaneamente su tutti i nodi appartenenti al gruppo `webservers`.
+
+1.  **Aggiornamento dell'Inventory:**
+    Nel file `/etc/ansible/hosts`, si definiscono i parametri di connessione specifici per ogni host remoto, inclusi indirizzi IP e utenti:
+    ```ini
+    [webservers]
+    localhost ansible_connection=local
+    centos_server ansible_host=192.168.100.169 ansible_user=iafzal
+    ```
+
+2.  **Scrittura del Playbook (`install_httpd.yaml`):**
+    Il file deve seguire rigorosamente la sintassi YAML, dove l'indentazione definisce la gerarchia dei comandi.
+
+
+
+```yaml
+---
+- name: Installazione Apache su Webservers
+  hosts: webservers
+  become: yes
+  tasks:
+    - name: Installazione pacchetto httpd
+      dnf:
+        name: httpd
+        state: present
+```
+
+3. **Esecuzione del Playbook:**
+L'esecuzione del Playbook avviene tramite il comando `ansible-playbook`. Durante questa fase, Ansible legge l'inventario, si connette agli host specificati e applica i task in ordine sequenziale.
+
+```bash
+ansible-playbook install_httpd.yaml --ask-become-pass
+```
+
+* **--ask-become-pass (o -K):** Questo parametro istruisce Ansible a richiedere la password di root/sudo, indispensabile per eseguire operazioni che richiedono privilegi elevati, come l'installazione di pacchetti di sistema tramite `dnf`.
+* **Esecuzione:** Ansible si connette via SSH a ciascun host remoto definito nel gruppo `webservers`, verifica lo stato del pacchetto `httpd` e, se non presente, procede all'installazione.
+
+
+
+---
+
+### Step 6: Verifica Finale e Conclusioni
+Al termine del processo, Ansible genera un riepilogo dettagliato dello stato di ogni host, denominato **Play Recap**. Questo sommario permette di monitorare l'esito delle operazioni su tutta l'infrastruttura in un'unica schermata.
+
+**Interpretazione dei risultati:**
+* **ok:** Indica che il task è stato completato con successo o che il sistema si trovava già nello stato desiderato (principio di idempotenza).
+* **changed:** Segnala che è stata apportata una modifica effettiva al sistema (es. il pacchetto è stato installato ex novo).
+* **unreachable:** Il nodo non è stato raggiunto per problemi di rete o credenziali SSH errate.
+* **failed:** Si è verificato un errore logico durante l'esecuzione del task.
+
+
+
+Per confermare manualmente l'avvenuta installazione su tutti i nodi gestiti, è possibile eseguire il seguente comando di verifica:
+```bash
+rpm -qa | grep httpd
+```
+
+L'implementazione di Ansible consente di gestire infrastrutture scalabili con estrema precisione, garantendo l'uniformità delle configurazioni e riducendo sensibilmente i tempi operativi necessari per la manutenzione e il deployment.
+
+---
+
+# Installazione, Configurazione e Gestione di OpenVPN in ambiente Linux
+
+**OpenVPN** è un protocollo VPN open-source che permette di creare connessioni sicure e private punto-punto. A differenza dei protocolli tradizionali, OpenVPN è ampiamente apprezzato per la sua affidabilità, sicurezza e compatibilità multipiattaforma.
+
+---
+
+## 1. Concetti Fondamentali e Funzionamento
+
+Una **VPN (Virtual Private Network)** stabilisce una connessione digitale tra un dispositivo locale e un server remoto. Questo processo crea un **tunnel criptato** che:
+* Protegge i dati personali da intercettazioni.
+* Maschera l'indirizzo IP reale dell'utente.
+* Permette di superare blocchi geografici o firewall.
+
+
+
+### OpenVPN vs VPN Tradizionali
+Mentre il termine VPN è un concetto generale, OpenVPN è un'implementazione specifica. Rispetto al protocollo PPTP (sviluppato da Microsoft negli anni '90), OpenVPN offre una sicurezza superiore grazie all'uso di librerie OpenSSL e alla possibilità per la community di revisionare e migliorare costantemente il codice sorgente.
+
+---
+
+## 2. Architettura del Laboratorio
+Per questa procedura vengono utilizzate due macchine virtuali:
+1.  **Server:** Nodo centrale che gestisce le connessioni (IP finale `.167`).
+2.  **Client:** Nodo che si connette al tunnel (IP finale `.178`).
+
+> **Nota:** Si raccomanda di eseguire uno snapshot delle macchine virtuali prima di procedere, in modo da poter ripristinare lo stato originale in caso di errori di configurazione.
+
+---
+
+## 3. Procedura Operativa: Configurazione Server
+
+### Step 1: Installazione dei pacchetti
+È necessario installare il software OpenVPN e l'utility `easy-rsa`, fondamentale per la gestione della **PKI (Public Key Infrastructure)** e dei certificati.
+
+```bash
+dnf install openvpn easy-rsa -y
+```
+
+### Step 2: Configurazione della PKI con Easy-RSA
+I certificati agiscono come documenti di identità digitali, garantendo che solo i server e i client autorizzati possano accedere alla rete. Per la loro gestione si utilizza l'infrastruttura a chiave pubblica (PKI).
+
+1.  **Inizializzazione della PKI:**
+    Dopo aver copiato i file di `easy-rsa` nella directory `/etc/openvpn`, è necessario preparare l'ambiente per la creazione dei file di sicurezza.
+    ```bash
+    ./easy-rsa init-pki
+    ```
+    Questo comando crea la struttura delle cartelle necessaria per ospitare chiavi e certificati.
+
+2.  **Creazione della Certification Authority (CA):**
+    Viene generato il certificato radice che servirà a firmare e validare tutte le richieste di connessione.
+    ```bash
+    ./easy-rsa build-ca no-pass
+    ```
+    L'opzione `no-pass` viene utilizzata per semplificare le operazioni di laboratorio; in ambienti di produzione è consigliabile impostare una password.
+
+3.  **Generazione dei Certificati per Server e Client:**
+    Vengono create le chiavi private e le relative richieste di firma (CSR).
+    * **Per il server:** `./easy-rsa gen-req server no-pass`
+    * **Per il client:** `./easy-rsa gen-req client no-pass`
+
+4.  **Firma dei Certificati:**
+    La CA valida ufficialmente l'identità del server e del client firmando i file generati al punto precedente.
+    * **Firma server:** `./easy-rsa sign-req server server`
+    * **Firma client:** `./easy-rsa sign-req client client`
+
+5.  **Generazione parametri Diffie-Hellman e Chiave HMAC:**
+    Questi componenti aggiungono livelli di sicurezza per lo scambio delle chiavi e proteggono contro attacchi DoS.
+    ```bash
+    ./easy-rsa gen-dh
+    openvpn --genkey secret ta.key
+    ```
+
+
+
+---
+
+### Step 3: Configurazione del Servizio Server
+Una volta pronti i file di sicurezza, questi devono essere spostati nella directory di configurazione di OpenVPN per essere utilizzati dal servizio.
+
+1.  **Trasferimento file:** I file `ca.crt`, `dh.pem`, `server.crt`, `server.key` e `ta.key` vengono posizionati in `/etc/openvpn`.
+2.  **Configurazione del file server.conf:** È necessario modificare il file di esempio per puntare ai corretti percorsi dei certificati e definire i parametri di rete (es. porta 1194).
+3.  **Abilitazione del routing (IP Forwarding):** Per consentire al server di instradare il traffico tra i client e le reti esterne, deve essere attivato l'inoltro dei pacchetti IP a livello di kernel.
+    ```bash
+    echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
+    sysctl -p
+    ```
+
