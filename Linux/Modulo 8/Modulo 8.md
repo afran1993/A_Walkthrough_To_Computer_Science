@@ -1930,3 +1930,113 @@ Dopo l'inserimento della password, l'ambiente permette di eseguire i comandi SQL
 ---
 
 
+# Analisi Comparativa: Linux RHEL/CentOS 5, 6 e 7
+
+L'evoluzione delle distribuzioni Linux come Red Hat Enterprise Linux (RHEL) e CentOS risponde alla necessità di introdurre nuove funzionalità, ottimizzare le prestazioni e risolvere bug critici. Sebbene l'addestramento moderno si focalizzi sulla versione 7, è fondamentale per un amministratore di sistema comprendere le differenze chiave rispetto alle versioni precedenti per operare in ambienti aziendali eterogenei.
+
+---
+
+## 1. Relazione tra RHEL e CentOS
+Sotto il profilo tecnico, RHEL e CentOS sono identici. La distinzione principale risiede nel supporto:
+* **RHEL:** Offre supporto tecnico commerciale, patch ufficiali e correzioni rapide fornite da Red Hat.
+* **CentOS:** È un software libero basato sulla comunità; il supporto è affidato ai forum e ai tempi di risposta degli utenti volontari.
+
+---
+
+## 2. Differenze nel Sistema di Base e Configurazione
+
+| Funzionalità | RHEL 5 / 6 | RHEL 7 |
+| :--- | :--- | :--- |
+| **Gestione Sottoscrizioni** | `rhn_register` | `subscription-manager` |
+| **Informazioni Hardware** | `sosreport`, `dmidecode` | `lshw` (nuovo standard) |
+| **Punto di Controllo** | `system-config-*` | `gnome-control-center` |
+| **Gestione Tempo/Data** | NTP (`ntpd`) | Chrony (`chronyd`) |
+| **Hostname** | `/etc/sysconfig/network` | `hostnamectl` o `/etc/hostname` |
+
+---
+
+## 3. Gestione dei Servizi e Processi
+Il cambiamento più significativo nella versione 7 è la transizione a **systemd**.
+
+* **Controllo Servizi:** Nelle versioni 5 e 6 si utilizzavano i comandi `service` (per avvio/stop) e `chkconfig` (per l'abilitazione al boot). Nella versione 7, entrambi sono sostituiti dal comando unificato **`systemctl`**.
+* **Logging:** Si è passati dal classico `syslog` al sistema **`rsyslog`** (che supporta il logging remoto). La versione 7 introduce inoltre **`journalctl`** per l'analisi avanzata dei log di sistema.
+* **Run Levels:** Il concetto di run level (gestito precedentemente tramite `/etc/inittab`) è ora integrato e gestito tramite i "targets" di `systemctl`.
+
+---
+
+## 4. File System e Storage
+* **File System Predefinito:** Mentre le versioni 5 e 6 utilizzavano EXT3 o EXT4, RHEL 7 adotta **XFS** come standard, offrendo prestazioni superiori e una gestione dei dati più rapida.
+* **Storage:** Le utility per la gestione dei volumi logici (LVM) come `pvcreate` rimangono sostanzialmente invariate per garantire compatibilità.
+
+---
+
+## 5. Networking e Sicurezza
+* **Configurazione Rete:** Viene introdotta l'utility **`nmcli`** (Network Manager CLI) come metodo principale per modificare le connessioni.
+* **Comando IP:** Il classico `ifconfig` è considerato deprecato (sebbene installabile tramite il pacchetto `net-tools`) in favore del più moderno comando **`ip`**.
+* **Firewall:** Nelle versioni precedenti si interagiva direttamente con `iptables`. In RHEL 7 è stato introdotto **`firewalld`**, gestibile tramite `firewall-cmd`.
+
+---
+
+## 6. Gestione Software
+L'utility `yum` rimane lo standard per la gestione dei pacchetti, ma sono state introdotte piccole modifiche sintattiche per coerenza:
+* **Esempio:** L'installazione di gruppi di pacchetti è passata da `yum groupinstall` (parola singola) a `yum group install` (con spazio), sebbene molte versioni supportino ancora la vecchia sintassi per retrocompatibilità.
+
+---
+
+### Conclusione
+Il passaggio alla versione 7 rappresenta una pietra miliare per l'ecosistema Red Hat, specialmente per l'introduzione di `systemd` e la centralizzazione dei comandi sotto `systemctl`. La conoscenza dei vecchi comandi rimane tuttavia un requisito essenziale per gestire infrastrutture legacy ancora presenti nel settore corporate.
+
+---
+
+# Analisi Comparativa: RHEL 7 vs RHEL 8
+
+Il rilascio di Red Hat Enterprise Linux 8 (RHEL 8), avvenuto ufficialmente il 7 maggio 2019, ha introdotto diverse ottimizzazioni orientate agli sviluppatori e alla modernizzazione dei servizi. Poiché CentOS è derivato direttamente da Red Hat, queste considerazioni sono valide per entrambi i sistemi.
+
+---
+
+## 1. Specifiche di Sistema e Kernel
+
+| Caratteristica | RHEL 7 | RHEL 8 |
+| :--- | :--- | :--- |
+| **Nome in codice** | Maipo | Ootpa |
+| **Versione Kernel** | 3.10 | 4.18 |
+| **Supporto Massimo RAM (x64)** | 12 Terabyte | 24 Terabyte |
+| **Fine Supporto (Full)** | 2024 | 2029 |
+
+---
+
+## 2. Gestione dei Servizi e Rete
+
+### Sincronizzazione dell'orario (NTP)
+* **RHEL 7:** Supporta sia il classico demone `ntpd` che il più moderno `chronyd`.
+* **RHEL 8:** Il supporto a `ntp` è stato rimosso. Viene utilizzato esclusivamente **Chrony** (`chronyd`) per la sincronizzazione temporale tramite rete.
+
+### Firewall
+* **RHEL 7:** Utilizza il framework `iptables` come backend per il servizio `firewalld`.
+* **RHEL 8:** Il framework di backend è stato sostituito da **nftables**. Sebbene i comandi di `firewalld` rimangano simili, la struttura sottostante è più efficiente e moderna.
+
+---
+
+## 3. Gestione del Software e File System
+
+### Package Management (YUM vs DNF)
+In RHEL 8 è stata introdotta una nuova versione del gestore pacchetti:
+* **RHEL 7:** Utilizza principalmente **YUM**.
+* **RHEL 8:** Il gestore predefinito è **DNF** (*Dandified YUM*). Tuttavia, per mantenere la retrocompatibilità, il comando `yum` è presente come collegamento simbolico (link) a `dnf`. Ciò permette di continuare a utilizzare i comandi familiari pur beneficiando delle migliori prestazioni di DNF.
+
+### File System XFS
+Entrambe le versioni utilizzano XFS come file system predefinito, ma con limiti di capacità differenti:
+* **RHEL 7:** Supporto fino a 500 Terabyte.
+* **RHEL 8:** Supporto esteso fino a **1 Petabyte** (1024 Terabyte).
+
+---
+
+## 4. Database e Ambiente Grafico
+* **Database:** Mentre RHEL 7 era focalizzato principalmente su MariaDB, RHEL 8 include il supporto nativo e ottimizzato per una gamma più ampia di database, tra cui **PostgreSQL** e **Redis**.
+* **Interfaccia GUI:** RHEL 8 introduce una versione aggiornata dell'ambiente desktop **GNOME** (passando alla versione 3.28 o superiore), migliorando l'esperienza utente e la gestione delle risorse.
+
+---
+
+### Conclusione
+Nonostante le importanti evoluzioni sotto il cofano (Kernel, DNF, nftables), la maggior parte dei comandi fondamentali appresi su RHEL 7 rimane applicabile e valida anche su RHEL 8. La transizione non compromette l'operatività standard, ma offre strumenti più potenti per la gestione di carichi di lavoro moderni.
+
