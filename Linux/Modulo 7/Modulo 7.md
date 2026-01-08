@@ -1205,3 +1205,363 @@ Affinché il sistema utilizzi il nuovo server DNS, è necessario seguire questi 
 
 ---
 
+### Strumenti di Risoluzione: nslookup e dig
+
+In ambiente Linux, la risoluzione dei nomi (DNS lookup) è il processo attraverso il quale un nome host (hostname) viene tradotto nel corrispondente indirizzo IP. Sebbene protocolli come il `ping` o i browser web effettuino questa traduzione automaticamente, esistono strumenti specifici per interrogare direttamente i server DNS.
+
+---
+
+#### 1. Funzionamento della Risoluzione
+I computer comunicano esclusivamente tramite indirizzi IP, ma per gli esseri umani è molto più semplice memorizzare nomi testuali (es. www.google.com). Il sistema DNS agisce come un traduttore tra queste due realtà.
+
+
+
+* **Server DNS (Resolver):** È il server che riceve la richiesta di traduzione. In un ambiente domestico, solitamente coincide con il modem/router.
+* **Porta DNS:** Il servizio DNS opera generalmente sulla **porta 53**.
+* **Risposta Non Autorevole (Non-authoritative answer):** Indica che il server interrogato (es. il proprio modem) non possiede direttamente il record richiesto nel proprio database locale, ma ha dovuto recuperare l'informazione da altri server sulla rete internet.
+
+---
+
+#### 2. Lo Strumento nslookup
+`nslookup` (Name Service Look Up) è un'utility storica disponibile sia su Linux che su Windows. Può essere utilizzata in due modalità:
+
+* **Interattiva:** Digitando semplicemente `nslookup` si accede a un prompt dedicato dove è possibile inserire più nomi di dominio in sequenza.
+* **Diretta:** Seguita dal nome del sito per ottenere un risultato immediato.
+
+```bash
+# Esempio di utilizzo diretto
+nslookup [www.hotmail.com](https://www.hotmail.com)
+```
+
+#### 3. Lo Strumento dig
+
+`dig` (Domain Information Groper) è lo strumento moderno preferito dagli amministratori di sistema Linux. Rispetto a `nslookup`, fornisce dettagli molto più approfonditi sulla struttura della risposta DNS e sui diversi tipi di record.
+
+```bash
+# Esempio di utilizzo
+dig [www.facebook.com](https://www.facebook.com)
+```
+
+#### 4. Verifica Pratica
+
+Per comprendere l'efficacia della risoluzione, è possibile:
+
+1. Ottenere l'indirizzo IP di un sito tramite nslookup o dig.
+
+2. Inserire tale indirizzo IP direttamente nella barra degli indirizzi di un browser.
+
+3. Osservare come il browser carichi correttamente la pagina (es. la pagina di login di Facebook), dimostrando che la navigazione avviene tecnicamente tramite IP, anche se l'utente utilizza il nome.
+
+---
+
+### NTP: Network Time Protocol
+
+Il Network Time Protocol (NTP) è un servizio fondamentale per la sincronizzazione dell'orario dei computer all'interno di una rete. 
+
+#### Importanza della sincronizzazione
+In ambito aziendale, mantenere l'orario sincronizzato tra tutti i server è di vitale importanza. Quando si opera in ambienti cluster o con workflow complessi, anche un piccolo sfasamento temporale (time drift) di pochi secondi o minuti può causare:
+* Errori di autenticazione.
+* Incongruenze nei log di sistema (difficoltà nel troubleshooting).
+* Problemi nei processi di backup e replica dei dati.
+
+
+
+---
+
+#### 1. Verifica e Installazione
+Per gestire il servizio NTP su Linux, è necessario innanzitutto verificare la presenza del pacchetto.
+
+* **Verifica installazione:**
+  ```bash
+  rpm -qa | grep ntp
+  ```
+* **Installazione (se mancante):**
+  ```bash
+  yum install ntp -y
+
+#### 2. Configurazione del Servizio
+Il file di configurazione principale si trova in `/etc/ntp.conf`. All'interno di questo file vengono definiti i server esterni dai quali il sistema preleverà l'orario corretto.
+
+* **Modifica del file:**
+  Aprire `/etc/ntp.conf` e individuare le righe che iniziano con `server`. È possibile aggiungere server pubblici affidabili, come quelli di Google o i pool predefiniti della distribuzione:
+  ```text
+  server 8.8.8.8
+  ```
+
+*(Nota: In contesti reali, si utilizzano solitamente i server del progetto pool.ntp.org per una maggiore precisione e affidabilità).*
+
+
+
+---
+
+#### 3. Gestione del Demone ntpd
+Il servizio è gestito dal demone `ntpd` (NTP Daemon), che rimane attivo in background per monitorare e correggere costantemente lo scostamento temporale del sistema.
+
+* **Avvio del servizio:**
+  ```bash
+  systemctl start ntpd
+  ```
+
+* **Verifica dello stato:**
+  Utilizzare `status` per confermare che il servizio sia "active (running)":
+  ```bash
+  systemctl status ntpd
+  ```
+#### 4. Monitoraggio e Diagnostica
+Per verificare l'effettiva sincronizzazione con i server di riferimento e misurare la qualità del segnale temporale, si utilizza l'interfaccia di controllo `ntpq`.
+
+* **Comando Peers:**
+  Entrare in modalità interattiva e digitare `peers` per visualizzare l'elenco dei server remoti e lo stato della connessione:
+  ```bash
+  ntpq
+  ntpq> peers
+  ```
+
+L'output mostrerà i server configurati, indicando parametri fondamentali per la diagnostica: * Stratum: La distanza gerarchica dalla sorgente temporale atomica (più è basso, più la sorgente è considerata primaria e precisa). * Delay: Il tempo di andata e ritorno (latenza) dei pacchetti di rete tra il client e il server. * Offset: La differenza temporale calcolata (in millisecondi) tra il clock del server e il clock locale del client. * Jitter: Indica la variabilità o l'instabilità della latenza di rete rilevata.
+
+### Chrony: L'evoluzione di NTP
+
+Nelle distribuzioni Linux moderne (come Red Hat Enterprise Linux 7/8+ e CentOS 7/8+), il demone tradizionale `ntpd` è stato sostituito da **Chrony**. Chrony è un'implementazione più versatile del Network Time Protocol, progettata per sincronizzare l'orologio di sistema in modo più rapido e con una precisione superiore, specialmente in sistemi che non sono costantemente connessi alla rete o che presentano variazioni di latenza.
+
+---
+
+#### 1. Componenti Principali
+* **Pacchetto:** `chrony`
+* **Demone:** `chronyd` (il processo in background).
+* **Utility CLI:** `chronyc` (l'interfaccia a riga di comando per il monitoraggio).
+* **File di configurazione:** `/etc/chrony.conf`
+* **Log di sistema:** `/var/log/chrony/`
+
+---
+
+#### 2. Installazione e Configurazione
+Prima di attivare Chrony, è fondamentale assicurarsi che il vecchio servizio NTP non sia in esecuzione per evitare conflitti.
+
+**A. Disattivazione di NTP (se presente):**
+```bash
+systemctl stop ntpd
+systemctl disable ntpd
+```
+
+**B. Installazione di Chrony:**
+```bash
+yum install chrony -y
+```
+
+**C. Configurazione dei Server: All'interno di /etc/chrony.conf, si definiscono i server di riferimento tramite la direttiva server o pool.**
+```text
+# Esempio di aggiunta server nel file /etc/chrony.conf
+server pool.ntp.org iburst
+```
+
+* **Nota:** L'opzione `iburst` permette una sincronizzazione molto più rapida all'avvio del servizio.*
+
+
+#### 3. Gestione del Servizio
+
+Una volta configurato, il demone deve essere avviato e impostato per l'esecuzione automatica al boot.
+```bash
+# Avvio e abilitazione al boot
+systemctl start chronyd
+systemctl enable chronyd
+
+# Verifica dello stato
+systemctl status chronyd
+```
+
+#### 4. Monitoraggio con chronyc
+#### 4. Monitoraggio con chronyc
+L'utility `chronyc` rappresenta l'interfaccia a riga di comando per interagire con il demone. Consente di monitorare le prestazioni di sincronizzazione e lo stato delle sorgenti temporali senza dover riavviare il servizio.
+
+* **Modalità interattiva**: Digitando `chronyc` nel terminale si accede a una shell dedicata dove è possibile impartire vari comandi (es. `sources`, `tracking`, `activity`).
+* **Verifica delle sorgenti**: Il comando più utilizzato è `sources`, che elenca i server a cui il client è connesso. L'opzione `-v` (verbose) fornisce una spiegazione dettagliata delle colonne.
+
+```bash
+# Visualizzazione delle sorgenti temporali con output dettagliato
+chronyc sources -v
+```
+
+**Interpretazione dei simboli (Colonna MS):**
+* **`*` (Current)**: Indica la sorgente temporale primaria con cui il sistema è attualmente sincronizzato.
+* **`+` (Combined)**: Indica sorgenti affidabili e utilizzabili come backup in combinazione con la principale.
+* **`-` (Excluded)**: Indica sorgenti scartate dall'algoritmo di selezione.
+* **`?` (Unreachable)**: Indica che il server non è raggiungibile o la connessione è stata persa.
+
+
+
+Qualsiasi modifica apportata al file di configurazione `/etc/chrony.conf` richiede un riavvio del demone per essere applicata:
+```bash
+systemctl restart chronyd
+```
+
+Infine, per assicurarsi che il servizio rimanga attivo anche dopo un eventuale riavvio del server:
+```bash
+systemctl enable chronyd
+```
+
+---
+
+### Gestione dell'orario con timedatectl
+
+Nelle distribuzioni Linux moderne basate su **systemd** (come RHEL 7/8+ e CentOS 7/8+), il comando `timedatectl` è diventato lo standard per la gestione dell'orario e della data, sostituendo gradualmente il comando tradizionale `date`.
+
+---
+
+#### 1. Caratteristiche Principali
+* **Integrazione:** Fa parte del sistema `systemd`.
+* **Completezza:** Permette di visualizzare e modificare l'ora locale, l'ora universale (UTC), l'orologio hardware (RTC) e i fusi orari.
+* **Sincronizzazione:** Può gestire la sincronizzazione automatica tramite client come `chronyd`, `ntpd` o il leggero `systemd-timesyncd`.
+
+
+
+---
+
+#### 2. Comandi di Visualizzazione
+Per ottenere una panoramica completa dello stato attuale dell'orologio di sistema:
+
+```bash
+# Mostra lo stato attuale (ora, fuso orario e stato NTP)
+timedatectl
+# oppure
+timedatectl status
+```
+
+L'output fornirà dettagli cruciali come:
+* **Local time / Universal time:** L'ora attuale del sistema e quella coordinata universale (UTC).
+* **RTC time:** L'orario dell'orologio hardware (Real Time Clock).
+* **Time zone:** Il fuso orario impostato (es. America/New_York).
+* **System clock synchronized:** Indica se l'orologio è attualmente sincronizzato con una sorgente esterna.
+* **NTP service:** Indica se il servizio di sincronizzazione è attivo o inattivo.
+
+
+
+---
+
+#### 3. Gestione dei Fusi Orari (Timezone)
+È possibile visualizzare l'elenco di tutti i fusi orari supportati e impostare quello corretto per la propria area geografica.
+
+* **Elencare i fusi orari:**
+  ```bash
+  timedatectl list-timezones
+  ```
+  *(Utilizzare lo spazio per scorrere e `q` per uscire).*
+* **Impostare un nuovo fuso orario:**
+  ```bash
+  timedatectl set-timezone "Europe/Rome"
+  ```
+
+#### 4. Modifica Manuale di Data e Ora
+Se la sincronizzazione automatica non è attiva, è possibile impostare manualmente i parametri temporali. **Nota:** Il comando fallirà se la sincronizzazione NTP è già abilitata; in tal caso, occorre prima disabilitarla con `timedatectl set-ntp false`.
+
+* **Impostare solo la data:**
+    ```bash
+    timedatectl set-time "2026-01-08"
+    ```
+* **Impostare data e ora insieme:**
+    ```bash
+    timedatectl set-time "2026-01-08 15:30:00"
+    ```
+
+
+
+---
+
+#### 5. Abilitazione della Sincronizzazione NTP
+Per far sì che il sistema utilizzi un servizio esterno (come `chronyd` o `ntpd`) per mantenere l'ora precisa, è necessario abilitare la funzione NTP tramite il comando di controllo.
+
+**A. Verifica del servizio sottostante:**
+È necessario assicurarsi che un demone di sincronizzazione sia installato e attivo sul sistema.
+```bash
+systemctl status chronyd
+```
+
+**B. Attivazione della sincronizzazione:**
+```bash
+# Abilita la sincronizzazione automatica via rete
+timedatectl set-ntp true
+```
+
+Dopo l'esecuzione, verificando nuovamente con timedatectl, la voce System clock synchronized passerà a "yes" non appena il demone avrà agganciato correttamente il server remoto.
+
+---
+
+### Server di Posta in Linux: Postfix
+
+Un server di posta è un sistema informatico che funge da ufficio postale digitale, gestendo l'invio, la ricezione, l'elaborazione e l'archiviazione delle email tra utenti e domini. In ambito amministrativo Linux, è essenziale per ricevere notifiche automatiche sull'esito di workflow e processi di sistema.
+
+
+
+---
+
+#### 1. Panoramica dei Software di Posta
+CentOS e le distribuzioni RHEL-based offrono diverse opzioni:
+* **Postfix:** Il Mail Transfer Agent (MTA) moderno, sicuro e predefinito per CentOS/RHEL 8+. È preferito per la sua semplicità di configurazione.
+* **Sendmail:** Uno dei più antichi e complessi, ora deprecato nelle versioni più recenti.
+* **Dovecot:** Utilizzato specificamente come server IMAP e POP3 per la ricezione e gestione delle caselle postali.
+* **s-nail:** Un pacchetto leggero che fornisce il comando `mail` per scrivere e inviare email direttamente dal terminale.
+
+---
+
+#### 2. Installazione di Postfix e s-nail
+Per configurare un sistema di invio mail, è necessario installare sia il motore di trasporto (Postfix) che l'utility client (s-nail).
+
+```bash
+# Installazione dei pacchetti necessari
+dnf install postfix s-nail -y
+```
+
+#### 3. Configurazione: Il Relay Host
+In ambito aziendale, i server Linux spesso non inviano mail direttamente verso l'esterno, ma si appoggiano a un **Mail Relay Server**. Questo funge da intermediario (middleman) che accetta le email dai server interni e le consegna ai destinatari finali.
+
+La configurazione principale avviene nel file `/etc/postfix/main.cf`.
+
+**Procedura di configurazione:**
+1.  Aprire il file con un editor di testo: `vi /etc/postfix/main.cf`.
+2.  Individuare la riga contenente `#relayhost`.
+3.  Decommentare la riga (rimuovendo il carattere `#`) e specificare il server di inoltro.
+
+```text
+# Esempi di configurazione nel file main.cf
+relayhost = [192.168.1.100]          # Uso di un indirizzo IP (tra parentesi quadre)
+relayhost = [smtp.nomedominio.it]    # Uso di un nome di dominio completo (FQDN)
+```
+
+#### 4. Gestione del Servizio
+Postfix opera come un demone in background gestito tramite `systemctl`. È importante notare che, a differenza di servizi come `chronyd` o `sshd`, il nome di questo servizio non termina con la lettera "d".
+
+```bash
+# Avvio o riavvio del servizio per applicare le modifiche
+systemctl restart postfix
+
+# Abilitazione all'avvio automatico del sistema
+systemctl enable postfix
+
+# Verifica dello stato operativo
+systemctl status postfix
+```
+
+Per una verifica più approfondita a livello di processi, è possibile cercare il "master process" di Postfix, responsabile della gestione di tutte le code di messaggi:
+
+
+```bash
+ps -ef | grep postfix
+```
+
+#### 5. Invio di una Mail di Test
+
+Per inviare messaggi dalla riga di comando si utilizza il pacchetto s-nail, che fornisce l'interfaccia necessaria per comunicare con il motore di Postfix. Questa operazione è fondamentale per automatizzare le notifiche di sistema.
+
+Esempio di invio:
+
+```bash
+mail -s "Test Configurazione Mail" utente@esempio.com
+```
+
+**Procedura operativa:**
+1.  **Esecuzione**: Dopo aver impartito il comando `mail -s`, il cursore si sposterà su una nuova riga vuota.
+2.  **Composizione**: Digitare il testo del messaggio. In questa fase il terminale funziona come un editor di testo semplificato.
+3.  **Conclusione**: Premere la combinazione di tasti **Ctrl + D** per segnalare la fine del messaggio (EOF - End Of File).
+4.  **Invio**: Il sistema potrebbe chiedere conferma per l'invio o mostrare i destinatari; rispondere con **Y** (Yes) o premere **Invio** per finalizzare la spedizione.
+
+---
+
