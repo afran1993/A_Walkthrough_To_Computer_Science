@@ -1772,3 +1772,251 @@ Se il sito continua a non caricarsi, ecco una check-list veloce:
 
 ---
 
+### Gestione Centralizzata dei Log con Rsyslog
+
+In un ambiente con centinaia o migliaia di server, è impensabile collegarsi a ogni singola macchina per controllare i log in caso di problemi. La soluzione è un **Central Logger**: un server dedicato che riceve e organizza i log provenienti da tutti i client della rete (server Linux, Windows, stampanti, router, ecc.).
+
+
+
+---
+
+#### 1. Il Servizio Rsyslog
+Il cuore della gestione dei log su Linux è **Rsyslog**. È un servizio potente e flessibile che permette non solo di gestire i log locali in `/var/log`, ma anche di inoltrarli o riceverli via rete.
+
+* **Pacchetto**: `rsyslog`
+* **File di Configurazione**: `/etc/rsyslog.conf`
+* **Porta di Default**: **514** (utilizzata sia per UDP che per TCP)
+
+---
+
+#### 2. Comandi di Gestione
+Per operare su Rsyslog, è necessario avere i privilegi di **root**.
+
+```bash
+# Verificare se il pacchetto è installato
+rpm -qa | grep rsyslog
+
+# Se non presente, installarlo
+yum install rsyslog -y
+
+# Gestione del demone con systemd
+systemctl start rsyslog    # Avvia il servizio
+systemctl enable rsyslog   # Lo abilita al boot
+systemctl status rsyslog   # Verifica se è 'active (running)'
+systemctl restart rsyslog  # Applica le modifiche alla configurazione
+```
+
+#### 3. Configurazione del Client (Inoltro Log)
+Per fare in modo che un server (client) invii i propri log a un **Central Logger**, è necessario modificare il file di configurazione principale `/etc/rsyslog.conf`. 
+
+In fondo al file, si specifica a quale server inviare le informazioni e tramite quale protocollo:
+
+* **UDP (@)**: Più veloce ma meno affidabile (non garantisce la ricezione).
+* **TCP (@@)**: Più affidabile, garantisce che il log arrivi a destinazione.
+
+```bash
+# Esempio di configurazione per inoltro via UDP
+# Sintassi: *.* @INDIRIZZO_IP:PORTA
+*.* @192.168.100.160:514
+
+# Esempio di configurazione per inoltro via TCP
+*.* @@192.168.100.160:514
+```
+
+> **Nota sui moduli**: Se il server deve agire come **Central Logger** (ovvero deve ricevere log da altri), è necessario abilitare i moduli di ricezione all'interno di `/etc/rsyslog.conf`. Di default, queste righe sono commentate con un `#`. Rimuovi il commento per attivare l'ascolto sulla porta 514:
+
+```nginx
+# Per ricevere log via UDP
+module(load="imudp")
+input(type="imudp" port="514")
+
+# Per ricevere log via TCP
+module(load="imtcp")
+input(type="imtcp" port="514")
+```
+
+#### 4. Perché usare un Central Logger?
+Immagina di lavorare in un ambiente con **1.000 server**. Se si verificano problemi su 10 o 100 macchine contemporaneamente, collegarsi a ogni singolo server per controllare i log sarebbe un compito estenuante e inefficiente. Un Central Logger trasforma questo caos in un processo snello:
+
+* **Efficienza e Produttività**: Non perdi tempo a saltare da un server all'altro. Hai una "visione d'insieme" di tutta l'infrastruttura da un'unica console.
+* **Sicurezza Forense**: Se un hacker riesce a compromettere un server, la prima cosa che farà sarà cancellare i log locali per eliminare le proprie tracce. Con un Central Logger, i log vengono inviati istantaneamente a un server esterno sicuro, rendendo impossibile per l'attaccante cancellare le prove dell'intrusione.
+* **Gestione degli Errori**: Permette di correlare eventi. Se un database fallisce, puoi vedere istantaneamente se nello stesso secondo ci sono stati errori di rete o di archiviazione su altri dispositivi.
+
+
+
+---
+
+#### 5. Verifica del Servizio e Pacchetti
+Assicurati che il servizio sia attivo e configurato per avviarsi automaticamente al boot del sistema. Ricorda che per modificare questi parametri devi avere i privilegi di **root**.
+
+```bash
+# Verifica l'installazione del pacchetto
+rpm -qa | grep rsyslog
+
+# Se il pacchetto manca, installalo con:
+yum install rsyslog -y
+
+# Controlla se il servizio è 'active (running)'
+systemctl status rsyslog
+
+# Avvia e abilita il servizio per il prossimo riavvio
+systemctl start rsyslog
+systemctl enable rsyslog
+```
+
+---
+
+# Guida all'Installazione e Configurazione di Nagios Core
+
+## 1. Introduzione a Nagios
+**Nagios** è un potente sistema di monitoraggio eventi che permette di supervisionare l'intera infrastruttura IT, inclusi server, switch, reti e applicazioni. Il suo scopo principale è garantire che tutti i servizi funzionino correttamente, inviando notifiche tempestive in caso di anomalie.
+
+### Caratteristiche Principali:
+* **Monitoraggio Attivo**: Controlla costantemente lo stato di salute di server e computer.
+* **Sistema di Alerting**: Notifica gli utenti tramite SMS, email o chiamate quando si verifica un problema.
+* **Escalation dei Log**: Permette di scalare gli avvisi se il primo responsabile non risponde.
+* **Storico degli Eventi**: Mantiene un registro dettagliato di quando un problema è stato segnalato e come è stato risolto.
+
+> **Nota Storica**: Creato nel 1999 da Ethan Galstad con il nome di *NetSaint*, è diventato ufficialmente *Nagios* nel 2002 per motivi di marchio. La versione open-source è nota come **Nagios Core**.
+
+
+
+---
+
+## 2. Requisiti e Preparazione (Step 1-2)
+
+### Step 1: Installazione dei Pacchetti Necessari
+Nagios richiede diversi strumenti di sviluppo e un server web per l'interfaccia grafica.
+```bash
+dnf install httpd php gcc glibc glibc-common gd gd-devel make net-snmp unzip wget -y
+```
+
+* **gcc/glibc**: Indispensabili per compilare Nagios partendo dal codice sorgente.
+* **httpd/php**: Necessari per gestire e visualizzare l'interfaccia web di amministrazione.
+* **gd/gd-devel**: Utilizzati per generare mappe grafiche e grafici sullo stato dei servizi.
+* **Utilities (unzip, wget, make)**: Strumenti fondamentali per scaricare, estrarre e gestire l'installazione del software.
+
+### Step 2: Creazione di Utente e Gruppo
+Per ragioni di sicurezza e gestione dei permessi, è necessario creare un utente dedicato e un gruppo specifico per l'esecuzione dei comandi esterni.
+
+```bash
+# Creazione dell'utente nagios e del gruppo nagcmd
+useradd nagios
+groupadd nagcmd
+
+# Aggiunta degli utenti nagios e apache al gruppo nagcmd
+usermod -a -G nagcmd nagios
+usermod -a -G nagcmd apache
+```
+
+## 3. Installazione di Nagios Core (Step 3-5)
+
+### Step 3: Download ed Estrazione
+Si utilizza la directory `/tmp` per scaricare i sorgenti ufficiali. In questo esempio viene utilizzata la versione 4.5.4 (verificare sempre l'ultima disponibile su nagios.org).
+
+```bash
+cd /tmp
+# Download del pacchetto sorgente
+wget -O nagios-4.5.4.tar.gz [https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.5.4.tar.gz](https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.5.4.tar.gz)
+
+# Estrazione dell'archivio
+tar xzf nagios-4.5.4.tar.gz
+cd nagios-4.5.4
+```
+
+### Step 4: Configurazione del Build
+In questa fase si prepara il codice sorgente per la compilazione, istruendo Nagios a utilizzare il gruppo `nagcmd` per l'esecuzione dei comandi esterni. Questo passaggio garantisce che solo gli utenti autorizzati possano impartire comandi critici al sistema di monitoraggio.
+
+```bash
+./configure --with-command-group=nagcmd
+```
+
+> **Nota di Troubleshooting:** Se il processo di configurazione fallisce con l'errore **"Cannot find SSL header"**, significa che mancano le librerie di sviluppo di OpenSSL. Per risolvere il problema, è necessario installare il pacchetto richiesto e rieseguire la configurazione:
+>
+> ```bash
+> dnf install openssl-devel -y
+> ./configure --with-command-group=nagcmd
+> ```
+
+---
+
+### 5. Compilazione e Installazione di Nagios Core
+Dopo la configurazione, si procede alla compilazione del codice sorgente e all'installazione dei componenti del sistema tramite una serie di comandi `make`.
+
+
+
+* **`make all`**: Compila i file sorgente trasformandoli in programmi eseguibili dal sistema.
+* **`make install`**: Installa il programma principale e i file di supporto nelle directory di sistema.
+* **`make install-commandmode`**: Imposta i permessi corretti per l'interfaccia dei comandi esterni.
+* **`make install-init`**: Installa gli script di avvio per gestire Nagios come servizio di sistema.
+* **`make install-config`**: Installa i file di configurazione di esempio, necessari per il primo avvio.
+* **`make install-webconf`**: Configura il server Apache per permettere l'accesso all'interfaccia web di Nagios.
+
+---
+
+### 6. Installazione dei Plugin e Gestione Firewall
+Nagios richiede i **Plugin** per eseguire i controlli effettivi (come PING o il monitoraggio dei servizi). Senza di essi, il server non sarebbe in grado di raccogliere dati sullo stato degli host.
+
+```bash
+cd /tmp
+# Scaricare l'ultima versione dei plugin (es. 2.4.11)
+wget [https://nagios-plugins.org/download/nagios-plugins-2.4.11.tar.gz](https://nagios-plugins.org/download/nagios-plugins-2.4.11.tar.gz)
+tar xzf nagios-plugins-2.4.11.tar.gz
+cd nagios-plugins-2.4.11
+
+# Configurazione e installazione dei plugin per l'utente nagios
+./configure --with-nagios-user=nagios --with-nagios-group=nagios
+make install
+```
+
+**Importante:** In ambiente di laboratorio, viene spesso disabilitato il firewall per semplificare i test di connettività iniziale. Tuttavia, in contesti di produzione, è fondamentale configurare correttamente le regole di accesso anziché disattivare completamente il servizio, garantendo così la sicurezza della rete.
+
+```bash
+# Disabilitazione del firewall (solo per ambiente lab)
+systemctl stop firewalld
+systemctl disable firewalld
+```
+
+### 7. Configurazione Password Web e Avvio Servizi
+Per garantire la sicurezza dell'interfaccia di gestione, è necessario impostare una password per l'utente amministratore predefinito, **nagiosadmin**. Successivamente, si procede all'avvio del server web Apache e del servizio Nagios, abilitandone l'esecuzione automatica all'avvio del sistema.
+
+```bash
+# Impostazione della password per l'utente nagiosadmin
+htpasswd -c /usr/local/nagios/etc/htpassword.users nagiosadmin
+
+# Avvio e abilitazione dei servizi
+systemctl start httpd
+systemctl enable httpd
+systemctl start nagios
+systemctl enable nagios
+
+# Verifica dello stato di esecuzione
+systemctl status nagios
+```
+
+### 8. Configurazione degli Host
+Le definizioni degli host e dei servizi che Nagios deve monitorare sono contenute nella directory `/usr/local/nagios/etc/objects/`. Una gestione ordinata di questi file è fondamentale per la scalabilità del sistema.
+
+* **`localhost.cfg`**: Questo file viene utilizzato per configurare il monitoraggio del server locale (la macchina su cui è installato Nagios).
+* **`host.cfg`**: È prassi consigliata creare file di configurazione separati per i nuovi host remoti. Questo permette di mantenere i parametri organizzati e facilita la manutenzione in infrastrutture IT complesse.
+
+All'interno di questi file è possibile definire nuovi host specificando l'indirizzo IP, il nome simbolico e i servizi di controllo, come il comando `check_ping` per verificare la disponibilità della rete o la latenza dei pacchetti.
+
+
+
+---
+
+### 9. Verifica della Configurazione e Accesso Web
+Prima di applicare qualsiasi modifica, è indispensabile convalidare la configurazione. Nagios fornisce uno strumento di verifica che analizza i file `.cfg` alla ricerca di errori di sintassi o riferimenti mancanti.
+
+```bash
+# Comando per verificare la correttezza della configurazione
+/usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+# Se il controllo non rileva errori, riavviare il servizio per rendere effettive le modifiche
+systemctl restart nagios
+```
+
+Dopo il riavvio, è possibile accedere alla console di monitoraggio tramite browser digitando l'indirizzo IP del server seguito dal percorso `/nagios`:
+
+URL di esempio: `http://192.168.100.161/nagios`
