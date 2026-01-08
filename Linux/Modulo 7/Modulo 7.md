@@ -1565,3 +1565,210 @@ mail -s "Test Configurazione Mail" utente@esempio.com
 
 ---
 
+### Web Server (HTTPD): Creazione del primo sito web
+
+Il servizio HTTP (o Web Server) ha lo scopo di ospitare e servire pagine web (come Google, Facebook o siti personali) ai client che ne fanno richiesta tramite un browser. In ambiente Linux Red Hat/CentOS, il software di riferimento è **Apache**, il cui pacchetto e servizio sono denominati `httpd`.
+
+---
+
+#### 1. Componenti Fondamentali
+Per gestire un server web, è necessario conoscere i seguenti percorsi e file:
+
+* **Pacchetto:** `httpd`
+* **File di configurazione:** `/etc/httpd/conf/httpd.conf`. Permette di definire la porta di ascolto (default 80), le directory degli utenti e i permessi di accesso.
+* **Document Root:** `/var/www/html/`. È la directory principale che contiene i file del sito.
+* **Homepage:** `index.html`. È il file predefinito che il server cerca quando un utente visita l'indirizzo IP o il dominio.
+* **Log di sistema:** `/var/log/httpd/`. Essenziale per il troubleshooting (es. `access_log` e `error_log`).
+
+
+
+---
+
+#### 2. Installazione e Configurazione
+Prima di procedere, occorre verificare la presenza del software e avviarlo.
+
+```bash
+# Verificare se il pacchetto è installato
+rpm -qa | grep httpd
+
+# Se non presente, installarlo
+dnf install httpd -y
+
+# Abilitare il servizio al boot e avviarlo
+systemctl enable httpd
+systemctl start httpd
+```
+
+#### 3. Creazione della Pagina Web (HTML)
+
+Per creare la propria homepage, bisogna editare il file index.html all'interno della Document Root.
+
+```bash
+cd /var/www/html/
+vi index.html
+```
+
+Esempio di codice HTML di base da inserire:
+
+
+```HTML
+<!DOCTYPE html>
+<html>
+<body style="background-color:lightgrey;">
+    <h1 style="text-align:center;">Benvenuti nella mia prima pagina!</h1>
+    <p style="text-align:center;">Sito web ospitato su server Linux.</p>
+</body>
+</html>
+```
+
+#### 4. Risoluzione dei Problemi di Accesso
+Se, inserendo l'indirizzo IP del server nel browser, la pagina non viene visualizzata o viene restituito un errore di connessione, le cause più comuni sono legate al firewall di sistema o allo stato del demone.
+
+
+
+* **Firewall del sistema**: Per impostazione predefinita, Linux blocca le connessioni in entrata sulla porta 80. Per consentire l'accesso, è necessario configurare le regole o, per test rapidi, arrestare il servizio:
+    ```bash
+    # Arresto temporaneo del firewall per test
+    systemctl stop firewalld
+    ```
+* **Stato del servizio**: Il web server deve essere esplicitamente avviato. Un errore tipico è configurare i file senza aver attivato il processo.
+    ```bash
+    # Controllo se il servizio è 'active (running)'
+    systemctl status httpd
+    ```
+
+---
+
+#### 5. Verifica Finale e Modifiche in Tempo Reale
+Una volta rimosse le restrizioni del firewall e avviato `httpd`, è sufficiente digitare l'indirizzo IP del server nella barra degli indirizzi del browser:
+`http://<INDIRIZZO_IP_DEL_SERVER>`
+
+
+
+Il server leggerà automaticamente il file `index.html`. Qualsiasi modifica salvata in `/var/www/html/index.html` sarà visibile immediatamente ricaricando la pagina (tasto **F5**), senza la necessità di riavviare il servizio Apache.
+
+---
+
+### Installazione e Gestione di Nginx: Da Web Server a Reverse Proxy
+
+Nginx (pronunciato "Engine-X") è un server web ad alte prestazioni progettato per gestire un numero elevato di connessioni simultanee (il problema C10K). Oltre a servire pagine statiche, è ampiamente utilizzato come **Reverse Proxy** e **Load Balancer**.
+
+---
+
+#### 1. Cos'è un Reverse Proxy?
+Un reverse proxy funge da intermediario tra il client (utente) e il server web reale. Le richieste arrivano a Nginx, che le inoltra al server di backend appropriato. Questo permette di distribuire il carico, aumentare la sicurezza e gestire meglio il traffico.
+
+
+
+---
+
+#### 2. Installazione e Avvio
+Nginx può essere installato tramite il gestore pacchetti `dnf`.
+
+```bash
+# Installazione
+dnf install nginx -y
+
+# Avvio e abilitazione al boot
+systemctl start nginx
+systemctl enable nginx
+
+# Verifica dello stato
+systemctl status nginx
+```
+
+> **Nota di Troubleshooting:** Se Nginx fallisce l'avvio, è molto probabile che la porta **80** sia già occupata da un altro servizio (come Apache/httpd). È possibile identificare il processo colpevole e liberare la porta con i seguenti comandi:
+
+```bash
+# Identificare il processo che occupa la porta 80
+lsof -i :80
+
+# Se il colpevole è httpd, fermarlo e disabilitarlo
+systemctl stop httpd
+systemctl disable httpd
+
+# Riprovare ad avviare Nginx
+systemctl start nginx
+```
+
+#### 3. Configurazione di un Sito Personalizzato
+Anziché modificare il file principale `/etc/nginx/nginx.conf`, la **best practice** prevede la creazione di file di configurazione modulari nella directory `/etc/nginx/conf.d/`. Questo approccio mantiene l'installazione pulita e isola eventuali errori di sintassi.
+
+**Esempio di configurazione (`/etc/nginx/conf.d/mio_sito.conf`):**
+```nginx
+server {
+    listen 80;
+    server_name 192.168.100.161; # Sostituire con l'IP del proprio server
+
+    location / {
+        root /var/www/mio_sito/html;
+        index index.html;
+    }
+}
+```
+
+**Procedura per rendere effettive le modifiche:**
+1.  **Creazione directory**: Eseguire `mkdir -p /var/www/mio_sito/html` per preparare lo spazio che ospiterà i file del sito.
+2.  **Creazione pagina**: Creare il file `index.html` (ad esempio con `vi` o `nano`) inserendo un messaggio personalizzato, come "Benvenuti su MyFirstLinuxOS".
+3.  **Test della sintassi**: È fondamentale eseguire `nginx -t`. Questo comando controlla che non ci siano errori di battitura nel file di configurazione prima di applicarlo.
+4.  **Ricaricamento del servizio**: Se il test è positivo, eseguire `systemctl restart nginx` per rendere attive le nuove impostazioni.
+
+
+
+---
+
+#### 4. Nginx come Reverse Proxy
+Configurare Nginx come **Reverse Proxy** significa istruirlo a ricevere le richieste dai client e inoltrarle a un altro server di backend. In questo scenario, Nginx funge da "receptionist" che smista il traffico verso il server corretto senza che l'utente finale conosca l'indirizzo reale del backend.
+
+
+
+**Configurazione del Proxy:**
+All'interno del blocco `location` del file di configurazione, si utilizza la direttiva `proxy_pass` per indicare la destinazione del traffico:
+
+```nginx
+server {
+    listen 80;
+    server_name 192.168.100.161;
+
+    location / {
+        proxy_pass [http://192.168.100.162](http://192.168.100.162); # Indirizzo IP del server di backend
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+#### 5. Risoluzione Errori Comuni (SELinux)
+In distribuzioni come CentOS, RHEL o Rocky Linux, **SELinux** (Security-Enhanced Linux) è spesso la causa di errori che impediscono il corretto funzionamento di Nginx, anche se i permessi dei file sembrano corretti.
+
+I due problemi più frequenti sono:
+
+* **Errore 403 (Forbidden)**: Nginx non ha il permesso di leggere i file nella Document Root perché non possiedono l'etichetta di sicurezza appropriata.
+    * **Soluzione**: È necessario cambiare il contesto di sicurezza dei file affinché SELinux li riconosca come contenuti web legittimi.
+    ```bash
+    chcon -t httpd_sys_content_t /var/www/mio_sito/html -R
+    ```
+
+
+
+* **Errore 502 (Bad Gateway)**: Quando Nginx funge da Reverse Proxy, SELinux impedisce al processo di effettuare connessioni di rete verso altri server (l'upstream). Nei log si troverà l'errore `Permission denied while connecting to upstream`.
+    * **Soluzione**: Bisogna abilitare la "booleana" di SELinux che permette al server web di connettersi alla rete.
+    ```bash
+    # Il flag -P rende la modifica persistente dopo il riavvio
+    setsebool -P httpd_can_network_connect 1
+    ```
+
+
+
+---
+
+#### 6. Troubleshooting Rapido
+Se il sito continua a non caricarsi, ecco una check-list veloce:
+1.  **Stato del servizio**: `systemctl status nginx` (deve essere *active*).
+2.  **Sintassi**: `nginx -t` (deve restituire *syntax is ok*).
+3.  **Firewall**: `systemctl stop firewalld` (per testare se il blocco è dovuto alle porte chiuse).
+4.  **Log degli errori**: `tail -f /var/log/nginx/error.log` (per vedere cosa succede in tempo reale).
+
+---
+
