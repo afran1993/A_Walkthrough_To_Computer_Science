@@ -3396,3 +3396,195 @@ Una volta pronti i file di sicurezza, questi devono essere spostati nella direct
     sysctl -p
     ```
 
+# Configurazione e Gestione di un Server DHCP in ambiente Linux
+
+Il **DHCP (Dynamic Host Configuration Protocol)** è un protocollo di rete che permette l'assegnazione automatica di indirizzi IP e altri parametri di configurazione ai dispositivi presenti su una rete.
+
+---
+
+## 1. Considerazioni Preliminari
+
+In contesti aziendali, il servizio DHCP è solitamente gestito da amministratori di rete attraverso router o dispositivi hardware dedicati. Raramente un amministratore di sistema Linux si occupa della sua gestione diretta.
+
+> **Importante:** Questa guida illustra la configurazione del server DHCP a scopo puramente concettuale e didattico. L'implementazione in una rete domestica reale richiede la riconfigurazione del modem/router per instradare il traffico verso il nuovo server Linux; operazioni errate in questa fase possono causare la perdita di connettività per tutti i dispositivi della casa.
+
+---
+
+## 2. Funzionamento del DHCP
+
+Per comunicare in rete, ogni computer necessita di un indirizzo IP unico.
+* **Assegnazione Automatica:** Il server DHCP assegna dinamicamente un IP a ogni nuovo dispositivo (tablet, laptop, server) che si connette alla rete.
+* **Natura Dinamica:** Gli indirizzi assegnati tramite DHCP possono variare nel tempo (es. dopo un riavvio del dispositivo).
+* **IP Statico:** In ambito aziendale, circa il 95-98% dei server utilizza IP statici (configurati manualmente) per garantire che l'indirizzo rimanga invariato, facilitando il puntamento DNS e la gestione dei servizi.
+
+---
+
+## 3. Procedura di Configurazione (Server Linux)
+
+### Step 1: Preparazione e Snapshot
+Prima di procedere su una macchina virtuale, è fondamentale eseguire uno **snapshot**. In caso di errori, sarà possibile ripristinare lo stato precedente in pochi secondi.
+
+### Step 2: Assegnazione di un IP Statico al Server DHCP
+Il server che distribuisce gli indirizzi IP non può dipendere a sua volta da un altro server DHCP; deve possedere un indirizzo IP statico e "cablato" (hard-coded).
+
+Per configurare l'IP in modo semplice su distribuzioni come CentOS/RHEL, si raccomanda l'uso dello strumento grafico testuale:
+```bash
+nmtui
+```
+
+1.  **Selezione dell'interfaccia di rete:** Attraverso il menu, viene individuata l'interfaccia corretta (es. `enp0s3`).
+2.  **Configurazione dell'indirizzo:** Viene impostato un indirizzo statico (es. `192.168.15.1/24`). La notazione `/24` (corrispondente alla maschera `255.255.255.0`) consente la gestione di una sottorete fino a 256 indirizzi.
+
+---
+
+### Step 3: Installazione del Pacchetto
+In base alla versione della distribuzione in uso, l'installazione del software avviene tramite il gestore di pacchetti predefinito:
+* **RHEL/CentOS 7:** `yum install dhcp`
+* **RHEL/CentOS 8+:** `dnf install dhcp-server`
+
+### Step 4: Configurazione del file dhcp.conf
+Il comportamento del server viene regolato modificando il file `/etc/dhcp/dhcpd.conf`. Qualora il file risultasse vuoto o non presente, è possibile utilizzare un modello di esempio disponibile nel sistema:
+```bash
+cp /usr/share/doc/dhcp*/dhcpd.conf.example /etc/dhcp/dhcpd.conf
+```
+
+**Definizione dei parametri operativi:**
+All'interno del file di configurazione vengono stabiliti i criteri per il rilascio degli indirizzi IP:
+
+* **Tempo di lease (Default/Max):** Viene definita la durata della prenotazione di un indirizzo per un client. Ad esempio, è possibile impostare una durata minima di 10 minuti (600 secondi) e una massima di 2 ore (7200 secondi).
+* **Subnet e Range:** Viene specificata la sottorete di appartenenza e l'intervallo esatto di indirizzi che il server è autorizzato a distribuire. Anche se la sottorete (es. `/24`) permette fino a 256 indirizzi, il range può essere limitato (ad esempio da `.50` a `.200`) per riservare gli altri IP a utilizzi statici.
+* **Opzioni di rete (Gateway e DNS):** Vengono definiti i parametri che verranno inviati automaticamente a ogni host, come l'indirizzo del router (gateway predefinito), la maschera di sottorete e i server DNS per la risoluzione dei nomi.
+
+---
+
+### Step 5: Gestione del Servizio e Sicurezza
+Completata la redazione del file di configurazione, si procede all'attivazione del demone e alla gestione delle eccezioni nel sistema di sicurezza.
+
+1.  **Avvio e persistenza:** Il servizio viene avviato e configurato per l'esecuzione automatica al boot del sistema.
+    ```bash
+    systemctl start dhcpd
+    systemctl enable dhcpd
+    ```
+
+2.  **Configurazione del Firewall:** Per consentire ai client di comunicare con il server, è necessario autorizzare il servizio DHCP nelle impostazioni di firewalld.
+    ```bash
+    firewall-cmd --add-service=dhcp --permanent
+    firewall-cmd --reload
+    ```
+    *In alternativa, in ambienti di test controllati, è possibile procedere all'arresto temporaneo del firewall tramite `systemctl stop firewalld`.*
+
+---
+
+### Step 6: Integrazione con l'Infrastruttura di Rete
+Perché il server Linux diventi l'autorità DHCP effettiva, è necessario intervenire sul router o sul modem fornito dall'ISP:
+
+1.  **Disabilitazione DHCP:** Viene disattivata la funzione DHCP nativa del router per evitare conflitti di indirizzamento sulla stessa rete.
+2.  **Configurazione Forwarding:** Viene impostato il router affinché inoltri le richieste DHCP verso l'indirizzo IP statico del server Linux.
+
+*Si ricorda che la procedura di configurazione del router varia sensibilmente a seconda del produttore e del modello in uso.*
+
+---
+
+# Configurazione e Gestione di Squid Proxy Server in Linux
+
+Un **Proxy Server** è un'applicazione che funge da intermediario tra un client che richiede una risorsa e il server che la fornisce. In termini semplici, agisce come un "uomo di mezzo" tra il dispositivo dell'utente e Internet.
+
+
+
+### Vantaggi dell'utilizzo di un Proxy
+* **Privacy:** Nasconde l'indirizzo IP reale e la posizione del client.
+* **Sicurezza:** Aggiunge uno strato di protezione all'ambiente Linux.
+* **Velocità:** Grazie al caching, memorizza copie di siti web frequentati per servirli più rapidamente.
+* **Controllo:** Permette di monitorare il traffico e bloccare l'accesso a determinati contenuti.
+
+---
+
+## 1. Caratteristiche di Squid Proxy
+Squid è un server proxy ad alte prestazioni specializzato nella gestione del traffico web.
+* **Porta predefinita:** Utilizza la porta **3128**.
+* **Configurazione:** Il file principale risiede in `/etc/squid/squid.conf`.
+* **Caching:** Ottimizza la banda memorizzando i file scaricati di frequente.
+
+---
+
+## 2. Installazione e Configurazione Iniziale
+
+### Preparazione
+Prima di procedere, è consigliabile eseguire uno **snapshot** della macchina virtuale per poter ripristinare il sistema in caso di errori. La procedura deve essere eseguita come utente **root**.
+
+### Installazione del pacchetto
+Per installare Squid e tutti i relativi pacchetti su distribuzioni basate su RHEL/CentOS:
+```bash
+dnf install squid* -y
+```
+
+### Gestione del servizio
+Una volta completata l'installazione, è necessario avviare il demone di Squid e configurarlo affinché rimanga attivo anche dopo il riavvio del sistema.
+
+```bash
+systemctl start squid
+systemctl enable squid
+systemctl status squid
+```
+
+## 3. Configurazione delle Regole di Accesso (ACL)
+
+Le **Access Control Lists (ACL)** sono fondamentali per stabilire i criteri di sicurezza e i permessi di navigazione. Esse permettono di definire con precisione quali host possono accedere al servizio e quali destinazioni devono essere filtrate.
+
+### Abilitazione della rete locale
+Per autorizzare i dispositivi della propria sottorete all'utilizzo del proxy, è necessario intervenire sul file `/etc/squid/squid.conf`. La configurazione prevede la definizione di una sorgente (src) seguita dall'istruzione di accesso:
+
+```text
+acl local_net src 192.168.100.0/24
+http_access allow local_net
+```
+
+### Filtraggio dei siti web (Blocklist)
+Il controllo dell'accesso a domini specifici viene gestito attraverso l'integrazione di liste di blocco personalizzate. Questa procedura permette di limitare la navigazione verso categorie di siti non autorizzate, come i social media o i portali di e-commerce.
+
+1.  **Creazione del file di restrizione:** Viene generato un file di testo dedicato (ad esempio `/etc/squid/block_sites.txt`) all'interno del quale vengono elencati i domini da inibire.
+    * Esempio di contenuto: `.facebook.com`
+    * L'utilizzo del punto antecedente al nome del dominio assicura che il blocco venga esteso non solo al dominio principale, ma anche a tutti i relativi sottodomini.
+
+2.  **Integrazione delle direttive in Squid:** All'interno del file principale `squid.conf`, viene dichiarata una ACL (Access Control List) che punta al file appena creato. Successivamente, viene applicata una regola di diniego per tale lista.
+
+```text
+# Definizione della lista basata sui domini contenuti nel file
+acl Block_Sites_RegX dstdomain "/etc/squid/block_sites.txt"
+
+# Applicazione del blocco (da inserire prima delle regole di accesso consentito)
+http_access deny Block_Sites_RegX
+```
+
+## 4. Configurazione del Firewall e Riavvio del Sistema
+
+Affinché le richieste provenienti dai client non vengano intercettate e bloccate dalle barriere di sicurezza del server, è indispensabile autorizzare il traffico sulla porta TCP **3128**.
+
+```bash
+# Apertura permanente della porta nel firewall
+firewall-cmd --add-port=3128/tcp --permanent
+firewall-cmd --reload
+```
+
+Al termine di ogni modifica strutturale ai file di configurazione, il servizio deve essere riavviato per rendere operative le nuove istruzioni e ricaricare correttamente le liste di blocco e le ACL.
+
+```bash
+systemctl restart squid
+```
+
+## 5. Configurazione del Client e Verifica Operativa
+
+Per instradare correttamente il traffico attraverso il proxy, è necessaria una configurazione manuale sul dispositivo dell'utente finale. All'interno delle impostazioni di rete del browser (ad esempio Firefox), deve essere inserito l'indirizzo IP del server Squid unitamente alla porta **3128** per tutti i protocolli supportati.
+
+
+
+### Test di funzionamento
+La verifica della corretta configurazione avviene testando due scenari distinti:
+
+* **Navigazione consentita:** L'accesso a portali non inclusi nelle liste di restrizione (es. `google.com`) deve risultare regolare. In questa modalità, il proxy funge da intermediario e gestore della cache, ottimizzando potenzialmente i tempi di caricamento.
+* **Verifica del blocco:** Tentando di raggiungere un sito interdetto (es. `facebook.com`), il browser deve mostrare una pagina di errore o un messaggio di "Accesso negato" (Access Denied) generato direttamente da Squid.
+
+
+---
+
+
