@@ -1,0 +1,74 @@
+installa strumenti base:
+ 
+sudo apt update
+sudo apt install -y curl ca-certificates gnupg lsb-release
+ 
+Installare GitLab Runner
+ 
+Aggiungi il repository ufficiale:
+ 
+curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh" | sudo bash
+ 
+ 
+Installa GitLab Runner:
+ 
+sudo apt install -y gitlab-runner
+ 
+ 
+Verifica:
+ 
+gitlab-runner --version
+ 
+ 
+Registrare il runner
+ 
+Avvia la registrazione:
+ 
+sudo gitlab-runner register
+ 
+ 
+Compila i campi:
+ 
+Prompt	                       Esempio / Suggerimento
+GitLab Instance            URL	https://unipolsai.gitlab.host
+Registration token	       Inserisci il token dal progetto o gruppo GitLab
+Description	               azure-ubuntu-20-04-docker
+Tags	                   docker,azure
+Executor	               docker 
+Default Docker image	   alpine:latest
+ 
+Configurare config.toml
+ 
+File principale: /etc/gitlab-runner/config.toml
+ 
+Esempio configurazione ottimizzata con più job paralleli:
+ 
+concurrent = 3
+check_interval = 0
+shutdown_timeout = 0
+ 
+[[runners]]
+  name = "azure-ubuntu-20-04-docker"
+  url = "https://unipolsai.gitlab.host"
+  token = "XXXX"
+  executor = "docker"
+  limit = 3
+  request_concurrency = 3
+ 
+  [runners.docker]
+    image = "alpine:latest"
+    privileged = false
+ 
+[session_server]
+  session_timeout = 1800
+ 
+ 
+Avviare e verificare il runner
+sudo systemctl restart gitlab-runner
+sudo systemctl status gitlab-runner
+ 
+ 
+Verifica:
+ 
+sudo gitlab-runner list
+sudo gitlab-runner verify
