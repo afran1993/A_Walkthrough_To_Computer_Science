@@ -575,6 +575,21 @@ Di seguito sono elencati i tipi di file supportati dal kernel Linux, ordinati pe
 | **`s`** | **Socket** | Punto di terminazione per la comunicazione di rete locale tra processi. |
 | **`p`** | **Named Pipe (FIFO)** | Canale di comunicazione inter-processo (IPC) basato sulla logica *First-In, First-Out*. |
 
+Tabella di approfondimento:
+
+| Lettera | Tipo di file      | Accesso / comportamento                    | Esempi concreti                          | Uso tipico                                              |
+| ------- | ----------------- | ------------------------------------------ | ---------------------------------------- | ------------------------------------------------------- |
+| `-`     | File regolare     | byte sequenziali, seekabile                | `/etc/passwd`, `/home/tony/file.txt`     | Memorizzazione dati su disco                            |
+| `d`     | Directory         | Contiene altri file                        | `/home`, `/var/log`                      | Organizzazione filesystem                               |
+| `b`     | Block device      | Accesso a blocchi, seekabile               | `/dev/sda`, `/dev/nvme0n1`               | Dischi, partizioni, storage persistente                 |
+| `c`     | Character device  | Flusso di byte, sequenziale, niente seek   | `/dev/null`, `/dev/tty`, `/dev/random`   | Terminali, input/output di device                       |
+| `p`     | FIFO / Named pipe | Sequenziale, unidirezionale, buffer kernel | `mkfifo mypipe`                          | Comunicazione tra processi, stream temporanei           |
+| `s`     | Socket            | Bidirezionale, supporta più connessioni    | `/tmp/mysocket`                          | IPC avanzata, comunicazione locale o rete               |
+| `l`     | Symbolic link     | Puntatore a un altro file                  | `/usr/bin/python -> /usr/bin/python3.11` | Collegamenti rapidi, versioning                         |
+| `D`     | Door (Solaris)    | Meccanismo IPC (simile a socket)           | -                                        | Solo su Solaris, non comune su Linux                    |
+| `?`     | File sconosciuto  | Non identificato dal kernel                | -                                        | Potrebbe essere file corrotto o speciale non supportato |
+
+
 ---
 
 ## Dettagli sulle Categorie Principali
