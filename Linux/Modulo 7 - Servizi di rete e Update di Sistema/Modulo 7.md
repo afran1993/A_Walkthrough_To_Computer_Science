@@ -380,8 +380,6 @@ Il comando principale per scaricare contenuti dal Web è **`wget`** (acronimo di
 wget [URL_completo_del_file]
 ```
 
-Esempio: se il file è un archivio con estensione .tar.gz, .zip o un eseguibile, è necessario indicare l'indirizzo completo nel comando per avviarne il trasferimento.
-
 Esempio: se il file è un archivio con estensione `.tar.gz`, `.zip` o un eseguibile, è necessario indicare l'indirizzo completo nel comando per avviarne il trasferimento.
 
 ---
