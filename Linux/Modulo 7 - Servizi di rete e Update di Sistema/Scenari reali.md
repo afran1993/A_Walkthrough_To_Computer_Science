@@ -1,154 +1,168 @@
-# Networking Linux Avanzato - Domande e Risposte
+# 🌐 Linux Networking: Architettura, Configurazione e Troubleshooting
 
-## 1. Client-Server
-
-**Domanda:** Chi avvia la comunicazione nel modello client-server?
-**Risposta:** Il client. Il client invia richieste al server e riceve risposte (ad esempio HTTP 200 = OK, 404 = Not Found).
-
-**Domanda:** Esempio pratico di flusso dati browser-server?
-**Risposta:** Il browser richiede una pagina web; il server risponde inviando il codice HTML della pagina.
+Questo documento riassume i concetti chiave del networking in ambiente Linux, trasformando la teoria in logica operativa per amministratori di sistema.
 
 ---
 
-## 2. Configurazione VM e Rete
+## 1. Il Modello Client-Server & Networking di Base
+L'infrastruttura si basa sulla richiesta di risorse (**Client**) e sulla loro erogazione (**Server**). 
 
-**Domanda:** Differenza tra NAT e Bridged in VirtualBox?
-**Risposta:**
-
-* NAT: la VM condivide l'IP dell'host, non raggiungibile dalla LAN.
-* Bridged: la VM riceve un IP nella stessa subnet della rete fisica, diventa nodo indipendente.
-
-**Domanda:** Come verifichi IP e connettività?
-**Risposta:** `ip addr show`, `ping`, `curl`.
-
-**Domanda:** Passaggi se una VM Bridged non riesce a fare ping a Google?
-**Risposta:** Verificare la configurazione della scheda di rete della VM, gateway, firewall e cavi/connessione fisica.
+### Concetti Chiave
+* **IP (Internet Protocol):** L'indirizzo logico univoco.
+* **MAC Address:** L'identità fisica della scheda (NIC), immutabile.
+* **Default Gateway:** Il "punto di uscita" della rete locale verso internet.
+* **DNS:** Traduce nomi (www.google.it) in IP.
 
 ---
 
-## 3. IP Statico e DNS
+## 2. Configurazione e File Critici
+In Linux, la rete si governa tramite file di testo in `/etc/`.
 
-**Domanda:** Perché usare IP statico per server critico?
-**Risposta:** Per essere sempre raggiungibile allo stesso indirizzo.
+| File | Funzione |
+| :--- | :--- |
+| `/etc/hosts` | Risoluzione nomi locale (priorità su DNS). |
+| `/etc/resolv.conf` | Configurazione dei server DNS. |
+| `/etc/nsswitch.conf` | Ordine di ricerca (es. prima file hosts, poi DNS). |
+| `/etc/sysconfig/network-scripts/` | Configurazione interfacce (IP statico vs DHCP). |
 
-**Domanda:** Come impostare DNS locale?
-**Risposta:** Modificare `/etc/hosts` per mappare nomi a indirizzi IP locali.
 
-**Domanda:** Differenza `/etc/hosts` vs `/etc/resolv.conf`?
-**Risposta:**
-
-* `/etc/hosts`: mappatura statica nomi locali.
-* `/etc/resolv.conf`: server DNS da interrogare.
 
 ---
 
-## 4. Strumenti diagnostici
+## 3. Strategie Avanzate: Alta Disponibilità e Performance
 
-**Domanda:** Differenza tra ping e curl?
-**Risposta:**
+### NIC Bonding & Teaming
+Unire più schede fisiche in un'unica interfaccia logica (`bond0` o `team0`).
+* **Obiettivo 1: Ridondanza.** Se un cavo si rompe, il server resta online.
+* **Obiettivo 2: Aggregazione di Banda.** Combinare due schede da 1Gbps per ottenere 2Gbps.
 
-* ping: verifica Layer 3 (IP) e raggiungibilità host.
-* curl: verifica Layer 7 (HTTP/HTTPS) e servizio web.
-
-**Domanda:** Comando per verificare porte TCP in ascolto?
-**Risposta:** `ss -tln`
-
-**Domanda:** Comando per vedere stato NIC e link fisico?
-**Risposta:** `ethtool <interfaccia>`
+> **Nota Tecnica:** Il **Teaming** (introdotto con NetworkManager) è la versione moderna e più efficiente del vecchio Bonding.
 
 ---
 
-## 5. Trasferimento file
+## 4. Scenari Reali e Ragionamento Logico
 
-**Domanda:** Differenza SCP vs rsync?
-**Risposta:**
+### Scenario A: La VM è "isolata"
+**Situazione:** Hai creato una macchina virtuale Linux. Riesci a fare il ping verso Google, ma dal tuo PC Windows non riesci a collegarti via SSH alla VM.
+* **Cosa farei io?** Controllerei le impostazioni di VirtualBox. Se la rete è in **NAT**, la cambierei in **Bridged Adapter**.
+* **Perché?** Il NAT crea una rete privata "nascosta" dietro l'host. Il Bridged Adapter mette la VM direttamente nella tua rete domestica/aziendale, assegnandole un IP visibile a tutti gli altri dispositivi.
 
-* SCP: copia sicura via SSH, trasferisce tutto il file.
-* Rsync: trasferisce solo le parti modificate, più efficiente.
+### Scenario B: Database lento e critico
+**Situazione:** Un server database SQL satura costantemente la banda di rete e non può permettersi downtime.
+* **Cosa farei io?** Configurerei un **NIC Bonding in Modalità 5 (Balance-TLB)** o Modalità 4 (LACP).
+* **Perché?** La Modalità 5 bilancia il traffico in uscita in base al carico delle schede. Se una scheda fallisce, il traffico passa sull'altra senza interrompere le transazioni SQL.
 
-**Domanda:** Porta di default FTP?
-**Risposta:** 21 (canale di controllo).
+### Scenario C: Il sito non carica ma il server risponde
+**Situazione:** Il comando `ping 192.168.1.50` risponde correttamente, ma se provi ad aprire il sito web ospitato su quel server, ricevi un errore.
+* **Cosa farei io?** Userei `ss -tln` sul server e `curl -I [IP]` dal client.
+* **Perché?** Il `ping` verifica solo se la macchina è accesa (Layer 3). `ss -tln` mi dice se il servizio Web è effettivamente in ascolto sulla porta 80/443. Se `ss` mostra la porta aperta ma `curl` fallisce, il problema è probabilmente un firewall che blocca il traffico applicativo.
 
----
 
-## 6. Bonding / Teaming
-
-**Domanda:** Cosa fa bonding active-backup?
-**Risposta:** Se la NIC primaria cade, il traffico passa sulla NIC secondaria. Verifica con `cat /proc/net/bonding/bond0`.
-
-**Domanda:** Modalità comuni bonding?
-**Risposta:**
-
-* 0: balance-rr
-* 1: active-backup
-* 5: adaptive transmit load balancing
 
 ---
 
-## 7. VLAN
+## 5. Toolbox del Sistemista (Comandi Essenziali)
 
-**Domanda:** Come creare VLAN su Linux?
-**Risposta:**
+### Diagnostica Rapida
+* `ip addr` / `ifconfig`: Verifica l'IP e lo stato dell'interfaccia.
+* `ethtool [interfaccia]`: Verifica se il cavo è collegato (`Link detected: yes`) e la velocità reale della scheda.
+* `ping -c 4 [IP]`: Test base di raggiungibilità.
 
-```bash
-ip link add link enp0s3 name enp0s3.10 type vlan id 10
-ip addr add 192.168.10.2/24 dev enp0s3.10
-ip link set enp0s3.10 up
-```
+### Analisi dei Socket con `ss` (Sostituto di netstat)
+* `ss -t`: Mostra connessioni TCP attive.
+* `ss -l`: Mostra servizi in ascolto (Listening).
+* `ss -n`: Mostra porte numeriche (es. 22 invece di ssh).
 
-* Lato switch: configurare trunk/access per le VLAN.
-
----
-
-## 8. Routing avanzato
-
-**Domanda:** Come configurare failover con due gateway?
-**Risposta:** Usare metriche diverse:
-
-```bash
-ip route add default via 192.168.1.1 dev enp0s3 metric 100
-ip route add default via 192.168.2.1 dev enp0s3 metric 200
-```
-
-Per failover avanzato si possono usare strumenti tipo keepalived.
+### Trasferimento File via CLI
+* `wget [URL]`: Scarica file in background.
+* `curl -O [URL]`: Scarica file (ottimo per testare header HTTP).
 
 ---
 
-## 9. Firewall (iptables)
+## 6. Riassunto Strategico per l'Apprendimento
+Per dominare il networking Linux non serve ricordare 3600 righe, ma seguire questo flusso logico di analisi:
+1.  **Layer Fisico:** La scheda è accesa? (`ethtool`)
+2.  **Layer IP:** La macchina ha l'indirizzo corretto? (`ip addr`)
+3.  **Layer Routing:** La macchina sa dove uscire? (`ip route` / Gateway)
+4.  **Layer Applicativo:** Il servizio è in ascolto sulla porta? (`ss -l`)
 
-**Domanda:** Come permettere SSH solo da 192.168.1.0/24?
-**Risposta:**
+# 📂 Linux Data Management: Trasferimento, Pacchetti e Connettività
 
-```bash
-iptables -A INPUT -p tcp -s 192.168.1.0/24 --dport 22 -j ACCEPT
-iptables -A INPUT -p tcp --dport 22 -j DROP
-```
-
-**Domanda:** Come capire se firewall blocca servizi?
-**Risposta:** Controllare `iptables -L -n` o `nft list ruleset` e policy di default.
+Questa guida esplora come muovere dati in sicurezza, gestire il software e garantire la continuità operativa del sistema.
 
 ---
 
-## 10. Troubleshooting server web
+## 1. Protocolli di Trasferimento: Quale scegliere?
 
-**Domanda:** Sequenza di controllo server web non raggiungibile?
-**Risposta:**
+In un'infrastruttura moderna, la scelta del protocollo dipende dal bilanciamento tra velocità e sicurezza.
 
-1. `ping` host per connettività IP
-2. `ss -tln | grep :80` per porte in ascolto
-3. `curl` per test HTTP
-4. Controllo firewall (`iptables -L -n`, `systemctl status firewalld`)
-5. Controllo servizio web (`systemctl status httpd`)
-6. Controllo cablaggio (`ethtool enp0s3`)
-7. Controllo log recenti (`journalctl -u httpd -n 50`)
+| Protocollo | Porta | Caratteristica Chiave | Uso Consigliato |
+| :--- | :--- | :--- | :--- |
+| **FTP** | 21 | Standard, ma non criptato (insicuro). | Trasferimenti legacy in reti protette. |
+| **SCP** | 22 | Sicuro (basato su SSH), semplice. | Copia rapida "one-shot" di singoli file. |
+| **rsync** | 22 | Ultra-efficiente (trasferisce solo i delta). | Backup e sincronizzazione di grandi directory. |
+
+
 
 ---
 
-## 11. Interpretazione `ip addr show`
+## 2. Il Ciclo di Vita del Software: DNF vs RPM
 
-**Domanda:** Significato loopback vs interfaccia fisica?
-**Risposta:**
+Gestire i pacchetti significa capire la differenza tra un "esecutore" e un "organizzatore".
 
-* `lo` → solo traffico interno (127.0.0.1, 10.255.255.254)
-* `eth0` → interfaccia reale verso rete esterna (es. 172.28.12.17/20)
-* IPv6 link-local (`fe80::`) → comunicazione solo sul link locale
+* **RPM (Basso livello):** Installa singoli file `.rpm`. Non scarica nulla da internet e non risolve le dipendenze (se manca un pezzo, si blocca).
+* **DNF/YUM (Alto livello):** Il gestore intelligente. Dialoga con i **Repository** (archivi online), scarica tutto il necessario e risolve le dipendenze automaticamente.
+
+
+
+---
+
+## 3. Scenari Reali: Ragionamento Logico e Soluzioni
+
+### Scenario E: Il Backup Notturno inefficiente
+**Il problema:** Devi sincronizzare ogni notte una cartella di log da 50GB su un server remoto. Usando `scp`, il processo richiede ore anche se sono cambiati solo pochi MB di log.
+* **Cosa farei io?** Sostituirei `scp` con `rsync -avz`.
+* **Ragionamento logico:** `scp` ricopia tutto da zero ogni volta. `rsync` confronta i file e invia solo i bit modificati (delta transfer), riducendo il tempo di backup da ore a pochi minuti e risparmiando banda passante.
+
+### Scenario F: Installazione in un Datacenter "Blindato" (Air-Gapped)
+**Il problema:** Devi installare un server web su una macchina che, per motivi di sicurezza, non ha e non avrà mai accesso a Internet.
+* **Cosa farei io?** Creerei un **Local Repository**. Monterei l'ISO di installazione di Linux e configurerei un file `.repo` in `/etc/yum.repos.d/` che punta al percorso del DVD (es. `baseurl=file:///mnt/cdrom`).
+* **Ragionamento logico:** Anche senza internet, i pacchetti necessari sono spesso contenuti nell'ISO ufficiale. Indicizzando quei file con `createrepo`, permetto a `dnf` di funzionare localmente risolvendo le dipendenze dal disco invece che dal web.
+
+### Scenario G: L'aggiornamento che rompe l'applicazione
+**Il problema:** Dopo un `dnf update`, l'applicazione aziendale smette di funzionare a causa di una nuova versione di una libreria incompatibile.
+* **Cosa farei io?** Se ho una VM, farei il **Revert allo Snapshot** scattato prima dell'update. Se sono su ferro (fisico), userei `dnf history undo [ID]`.
+* **Ragionamento logico:** La cronologia di DNF permette di fare il "rollback" di una specifica transazione. Tuttavia, la best practice è sempre `update` (che mantiene le vecchie versioni) invece di `upgrade` (che le elimina), e l'uso di snapshot preventivi per il ripristino istantaneo del sistema.
+
+### Scenario H: Troubleshooting di una connessione remota rifiutata
+**Il problema:** Provi a connetterti via SSH a un server, ma ricevi "Connection Refused".
+* **Cosa farei io?** 1. Verificherei lo stato del servizio con `systemctl status sshd`.
+    2. Userei `telnet [IP] 22` (se installato) per vedere se la porta risponde.
+* **Ragionamento logico:** "Connection Refused" significa che l'IP è raggiungibile (il ping risponde), ma non c'è nessun "postino" (demone SSH) pronto a ricevere sulla porta 22. Potrebbe essere il servizio spento o il firewall che non permette l'ingresso.
+
+
+
+---
+
+## 4. Toolbox: Comandi per la Manutenzione
+
+### Gestione Pacchetti (DNF/RPM)
+* `dnf repolist`: Mostra quali repository sono attivi.
+* `rpm -qc [pacchetto]`: Trova i file di configurazione di un software (fondamentale per le modifiche).
+* `rpm -qf /percorso/file`: "Di chi è questo file?". Identifica il pacchetto di origine di un comando.
+
+### Trasferimento e Sincronizzazione
+* `scp file.txt user@ip:/tmp`: Copia rapida.
+* `rsync -ahvz --progress /src /dest`: Sincronizzazione avanzata con dettagli leggibili.
+
+### Manutenzione e Patching
+* `dnf history`: Mostra la lista di tutti gli aggiornamenti fatti.
+* `cat /etc/redhat-release`: Verifica la versione esatta del sistema (fondamentale per il patching).
+
+---
+
+## 5. Sintesi per il System Administrator
+Per gestire correttamente un parco server, ricorda:
+1.  **Backup prima dei pacchetti:** Uno snapshot salva la carriera durante un `dnf update`.
+2.  **Sicurezza sempre:** SSH è la norma; Telnet è solo un reperto archeologico per test diagnostici.
+3.  **Efficienza rsync:** Non muovere mai più dati del necessario.
