@@ -543,8 +543,6 @@ Prova a eseguire questi passaggi nel tuo terminale per vedere le proprietà in a
 
 ---
 
-**Ottimo! Ora sai come leggere la "carta d'identità" di ogni file in Linux. Ti piacerebbe approfondire il significato dei permessi (quelle lettere `rwx` che precedono il proprietario) o preferisci imparare a creare e cancellare i tuoi file?**
-
 # Classificazione dei Tipi di File in Linux
 
 In un sistema operativo Linux, la distinzione tra le diverse tipologie di file non avviene tramite l'estensione (come in Windows), ma attraverso un indicatore specifico situato nel primo carattere dell'output del comando `ls -l`.
@@ -614,8 +612,6 @@ Un link simbolico contiene il percorso di un altro file. È simile ai collegamen
 
 ---
 
-**L'architettura "tutto è un file" di Linux permette una gestione uniforme di software e hardware. Desidera procedere con l'analisi dettagliata dei permessi di accesso (rwx) o con lo studio dei comandi per la creazione di file regolari?**
-
 # Analisi del Concetto di "Root" in Sistemi Linux
 
 In ambiente Linux, il termine "root" assume significati diversi a seconda del contesto tecnico. È fondamentale distinguere tra l'account utente, la directory radice del sistema e la directory home dell'amministratore per evitare errori operativi critici.
@@ -664,8 +660,6 @@ Il profilo dell'utente root dispone di una directory personale dedicata, differe
 
 
 ---
-
-**Questa distinzione è essenziale per la gestione sicura del sistema. Desidera approfondire i comandi per l'elevazione dei privilegi (`su`, `sudo`) o procedere con l'analisi della struttura delle sottodirectory contenute in `/`?**
 
 # Gestione delle Credenziali: Il Comando `passwd`
 
@@ -723,8 +717,6 @@ Se si tenta di eseguire `passwd [username]` come utente standard, il sistema res
 `passwd: Only root can specify a username.`
 
 ---
-
-**L'aggiornamento regolare delle password è una best practice fondamentale della sicurezza informatica. Desidera procedere con l'analisi dei permessi dei file (`chmod`) o con la gestione degli utenti (`useradd`, `userdel`)?**
 
 # Navigazione del Filesystem: Percorsi Assoluti e Relativi
 
@@ -797,8 +789,6 @@ Il simbolo dei due punti (**..**) rappresenta un riferimento relativo alla direc
 * **Tornare alla Home:** Il comando `cd` senza argomenti riporta istantaneamente l'utente nella propria Home Directory.
 
 ---
-
-**La corretta gestione dei percorsi è il requisito fondamentale per l'amministrazione di sistema. Desidera procedere con l'analisi dei comandi di manipolazione file (`cp`, `mv`, `rm`) o con la creazione di nuove strutture di directory (`mkdir`)?**
 
 # Creazione di File e Directory in Linux
 
@@ -880,8 +870,6 @@ Per consolidare le competenze, eseguire la seguente sequenza di comandi:
 
 ---
 
-**La corretta organizzazione dei file è alla base di un'amministrazione di sistema efficiente. Desidera approfondire le opzioni avanzate di `mkdir` (come la creazione di percorsi ricorsivi con `-p`) o procedere con i comandi per la rimozione di file e directory (`rm`, `rmdir`)?**
-
 # Duplicazione di Directory: Il Comando cp con Opzione Ricorsiva
 
 In ambiente Linux, la copia di una directory differisce dalla copia di un singolo file. Poiché una directory è un contenitore che può ospitare altri file e sottodirectory, il sistema richiede un'istruzione esplicita per gestire questa struttura gerarchica.
@@ -942,8 +930,6 @@ Se si tenta il comando `cp config /tmp/config_back`, il sistema ometterà la car
 | **cp -r** | Successo | Copia la cartella e tutto il suo contenuto (Ricorsivo). |
 
 ---
-
-**La copia ricorsiva è uno strumento di protezione essenziale. Desideri approfondire come spostare o rinominare le directory con il comando "mv", o preferisci passare alla gestione dei permessi per proteggere le cartelle appena copiate?**
 
 # Utility di Ricerca: find e locate
 
@@ -1012,8 +998,6 @@ Al termine delle attività di ricerca, riposizionare i file nella directory supe
 
 ---
 
-**L'efficienza nella localizzazione delle risorse è fondamentale per la manutenzione del sistema. Desideri procedere con lo studio dei filtri avanzati di `find` (come la ricerca per timestamp `-mtime`) o passare alla gestione delle archiviazioni con i comandi `tar` e `gzip`?**
-
 # Analisi Comparativa: Utility `find` vs `locate`
 
 In ambito Linux, la ricerca di oggetti nel filesystem viene gestita attraverso due strumenti principali: `find` e `locate`. Sebbene entrambi servano allo scopo di individuare file e directory, operano con logiche tecniche radicalmente differenti.
@@ -1081,8 +1065,6 @@ Per sincronizzare il database con lo stato attuale del filesystem, è necessario
 | `sudo updatedb` | Aggiorna forzatamente l'indice di ricerca di `locate`. |
 
 ---
-
-**Comprendere quando utilizzare l'uno o l'altro comando ottimizza i flussi di lavoro amministrativi. Desidera approfondire come automatizzare l'aggiornamento del database tramite `crontab` o procedere con l'analisi dei permessi speciali dei file (`SUID`, `SGID`)?**
 
 # Uso dei Wildcard (Metacaratteri) in Linux
 
@@ -1153,8 +1135,6 @@ Questi metacaratteri offrono un controllo superiore quando l'asterisco risulta t
 
 ---
 
-**L'efficienza di un amministratore Linux deriva dalla capacità di combinare questi metacaratteri per automatizzare i task ripetitivi. Desideri approfondire come utilizzare i wildcard con il comando di ricerca avanzata `find` o preferisci passare alla gestione dei flussi di dati tramite `redirection` e `pipe`?**
-
 # Gestione dei Collegamenti in Linux: Soft Link vs Hard Link
 
 I collegamenti (link) sono riferimenti a file o directory che permettono l'accesso a una risorsa da posizioni diverse nel filesystem. La distinzione tra Soft Link e Hard Link si basa sulla relazione con l'**inode**.
@@ -1219,5 +1199,3 @@ Per visualizzare l'inode associato a un file, si utilizza l'opzione `-i` del com
 | **Filesystem** | Supporta il cross-filesystem. | Limitato allo stesso filesystem. |
 
 ---
-
-**Comprendere la gestione degli inode e dei link è essenziale per la gestione dello spazio disco e la configurazione dei servizi. Desideri approfondire le quote disco e l'uso degli inode o procedere con la gestione dei permessi (`chmod`, `chown`)?**
