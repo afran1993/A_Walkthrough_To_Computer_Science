@@ -482,8 +482,6 @@ Per prendere confidenza, prova questa sequenza nel tuo terminale:
 
 ---
 
-**Ottimo lavoro! Ora sai come muoverti agilmente tra le cartelle. Quale di questi tre comandi ti sembra più complicato da ricordare, o vuoi passare direttamente a imparare come creare la tua prima cartella con il comando mkdir?**
-
 # Comprendere le Proprietà di File e Directory
 
 Ogni elemento in Linux possiede delle informazioni dettagliate (proprietà) che ne definiscono la natura, chi può usarlo e quanto spazio occupa.
